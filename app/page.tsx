@@ -1,65 +1,92 @@
-import Image from "next/image";
+"use client"
+
+import { SidebarTrigger } from "@/components/ui/sidebar"
+import { Separator } from "@/components/ui/separator"
+import {
+  Share,
+  Settings2,
+  ArrowUp,
+  FileText,
+  Clock
+} from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="flex flex-col h-screen bg-background">
+      {/* Header */}
+      <header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b px-4">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Separator orientation="vertical" className="h-4" />
+          <span className="font-medium text-foreground">tiny-chat</span>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" className="h-8 w-8">
+            <Share className="h-4 w-4" />
+            <span className="sr-only">Share query</span>
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8">
+            <Settings2 className="h-4 w-4" />
+            <span className="sr-only">Settings</span>
+          </Button>
+        </div>
+      </header>
+
+      {/* Content Area */}
+      <div className="flex-1 overflow-auto p-4 md:p-8 lg:p-12">
+        <div className="mx-auto max-w-3xl space-y-6">
+          <div className="space-y-2">
+            <h1 className="text-3xl font-bold tracking-tight">tiny-chat</h1>
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1.5 font-mono">
+                <FileText className="h-3 w-3" /> Used 2 sources
+              </span>
+              <span className="flex items-center gap-1.5 font-mono">
+                <Clock className="h-3 w-3" /> Completed in 1.2s
+              </span>
+            </div>
+          </div>
+
+          <div className="max-w-none space-y-6">
+            <p className="text-muted-foreground leading-relaxed">
+              Quantum computing is a rapidly-emerging technology that harnesses the laws of quantum mechanics to solve problems too complex for classical computers.
+            </p>
+
+            <div>
+              <h3 className="text-lg font-semibold mt-6 mb-2">1. The Qubit</h3>
+              <p className="text-muted-foreground leading-relaxed">
+                Unlike classical bits, which can be either 0 or 1, quantum bits (qubits) can exist in a state of superposition, representing both 0 and 1 simultaneously. This allows quantum computers to process a vast amount of possibilities at once.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-semibold mt-6 mb-2">2. Entanglement</h3>
+              <p className="text-muted-foreground leading-relaxed">
+                This is a phenomenon where qubits become interconnected such that the state of one qubit instantly influences the state of another, no matter the distance between them.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Input Area */}
+      <div className="p-4 md:p-8 shrink-0">
+        <div className="mx-auto max-w-3xl">
+          <div className="relative flex items-center bg-muted/50 rounded-2xl border px-4 py-2 ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+            <input
+              placeholder="Ask a follow up..."
+              className="flex-1 bg-transparent border-none focus:ring-0 text-sm py-2 outline-none"
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            <div className="flex items-center gap-2 ml-2">
+              <span className="text-[10px] text-muted-foreground font-mono font-medium">tiny-chat</span>
+              <Button size="icon" className="h-8 w-8 rounded-full">
+                <ArrowUp className="h-4 w-4" />
+                <span className="sr-only">Send message</span>
+              </Button>
+            </div>
+          </div>
         </div>
-      </main>
+      </div>
     </div>
-  );
+  )
 }
