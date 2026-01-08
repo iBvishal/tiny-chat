@@ -25,19 +25,19 @@ export function AppSidebar() {
             <SidebarHeader className="p-4 flex flex-row items-center justify-between">
                 <SidebarTrigger className="h-8 w-8 text-muted-foreground hover:bg-sidebar-accent" />
                 <div className="group-data-[collapsible=icon]:hidden">
-                    <SidebarMenuButton size="default" tooltip="Search" className="h-8 w-8 p-0 flex items-center justify-center">
+                    <SidebarMenuButton size="default" tooltip="Search" className="h-8 w-8 p-0 flex items-center justify-center transition-colors hover:bg-sidebar-accent">
                         <Search className="h-5 w-5" />
                     </SidebarMenuButton>
                 </div>
             </SidebarHeader>
 
-            <SidebarContent className="px-4 mt-2">
+            <SidebarContent className="px-2 mt-2">
                 <SidebarGroup className="p-0">
                     <SidebarGroupContent>
                         <SidebarMenu>
                             <SidebarMenuItem className="flex items-center gap-2">
                                 <SidebarMenuButton
-                                    className="flex-1 bg-muted/40 hover:bg-muted/60 h-10 px-4 rounded-xl transition-colors font-medium border border-transparent group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:aspect-square group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:bg-transparent"
+                                    className="flex-1 bg-muted/40 hover:bg-muted/60 h-10 px-4 rounded-xl transition-all duration-200 font-medium border border-transparent group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:aspect-square group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:bg-transparent hover:scale-[1.02] active:scale-[0.98]"
                                     tooltip="New chat"
                                 >
                                     <SquarePen className="h-5 w-5" />
@@ -46,7 +46,7 @@ export function AppSidebar() {
                                 <div className="group-data-[collapsible=icon]:hidden">
                                     <SidebarMenuButton
                                         size="default"
-                                        className="h-10 w-10 border border-muted-foreground/20 rounded-xl flex items-center justify-center p-0"
+                                        className="h-10 w-10 border border-muted-foreground/20 rounded-xl flex items-center justify-center p-0 transition-all duration-200 hover:bg-muted/80 hover:scale-[1.05] active:scale-[0.95]"
                                         tooltip="Temporary chat"
                                     >
                                         <MessageSquareDashed className="h-5 w-5" />

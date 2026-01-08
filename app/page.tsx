@@ -3,10 +3,14 @@
 import { Separator } from "@/components/ui/separator"
 import {
   Share,
-  Settings2,
   ArrowUp
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 export default function Home() {
   return (
@@ -18,10 +22,15 @@ export default function Home() {
           <span className="font-medium text-foreground">tiny-chat</span>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="h-8 w-8">
-            <Share className="h-4 w-4" />
-            <span className="sr-only">Share query</span>
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 transition-colors hover:bg-muted">
+                <Share className="h-4 w-4" />
+                <span className="sr-only">Share query</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Share</TooltipContent>
+          </Tooltip>
         </div>
       </header>
 
@@ -37,17 +46,21 @@ export default function Home() {
       {/* Input Area */}
       <div className="p-4 md:p-8 shrink-0">
         <div className="mx-auto max-w-3xl">
-          <div className="relative flex items-center bg-muted/50 rounded-2xl border px-4 py-2 ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 transition-all">
+          <div className="relative flex items-center bg-muted/50 rounded-2xl border px-4 py-2 ring-offset-background transition-all">
             <input
-              placeholder="Ask a follow up..."
+              placeholder="Ask tiny..."
               className="flex-1 bg-transparent border-none focus:ring-0 text-sm py-2 outline-none"
             />
             <div className="flex items-center gap-2 ml-2">
-              <span className="text-[10px] text-muted-foreground font-mono font-medium">tiny-chat</span>
-              <Button size="icon" className="h-8 w-8 rounded-full">
-                <ArrowUp className="h-4 w-4" />
-                <span className="sr-only">Send message</span>
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button size="icon" className="h-8 w-8 rounded-full transition-all hover:scale-105 active:scale-95">
+                    <ArrowUp className="h-4 w-4" />
+                    <span className="sr-only">Send message</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">Send message</TooltipContent>
+              </Tooltip>
             </div>
           </div>
         </div>
