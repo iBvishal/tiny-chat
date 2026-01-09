@@ -18,8 +18,26 @@ import {
     SidebarGroupContent,
     SidebarTrigger,
 } from "@/components/ui/sidebar"
+import { getChats, ChatSession } from "@/lib/storage"
+import Link from "next/link"
+import { usePathname, useSearchParams } from "next/navigation"
 
 export function AppSidebar() {
+    const [chats, setChats] = React.useState<ChatSession[]>([])
+    const pathname = usePathname()
+    const searchParams = useSearchParams()
+    const currentChatId = searchParams.get("id")
+
+    const loadChats = React.useCallback(() => {
+        setChats(getChats())
+    }, [])
+
+    React.useEffect(() => {
+        loadChats()
+        window.addEventListener("chats_updated", loadChats)
+        return () => window.removeEventListener("chats_updated", loadChats)
+    }, [loadChats])
+
     return (
         <Sidebar variant="sidebar" collapsible="icon">
             <SidebarHeader className="p-4 flex flex-row items-center justify-between">
@@ -36,13 +54,16 @@ export function AppSidebar() {
                     <SidebarGroupContent>
                         <SidebarMenu>
                             <SidebarMenuItem className="flex items-center gap-2">
-                                <SidebarMenuButton
-                                    className="flex-1 bg-muted/40 hover:bg-muted/60 h-10 px-4 rounded-xl transition-all duration-200 font-medium border border-transparent group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:aspect-square group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:bg-transparent hover:scale-[1.02] active:scale-[0.98]"
-                                    tooltip="New chat"
-                                >
-                                    <SquarePen className="h-5 w-5" />
-                                    <span className="group-data-[collapsible=icon]:hidden">New chat</span>
-                                </SidebarMenuButton>
+                                <Link href="/" className="flex-1">
+                                    <SidebarMenuButton
+                                        className="w-full bg-muted/40 hover:bg-muted/60 h-10 px-4 rounded-xl transition-all duration-200 font-medium border border-transparent group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:aspect-square group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:bg-transparent hover:scale-[1.02] active:scale-[0.98]"
+                                        tooltip="New chat"
+                                        isActive={!currentChatId}
+                                    >
+                                        <SquarePen className="h-5 w-5" />
+                                        <span className="group-data-[collapsible=icon]:hidden">New chat</span>
+                                    </SidebarMenuButton>
+                                </Link>
                                 <div className="group-data-[collapsible=icon]:hidden">
                                     <SidebarMenuButton
                                         size="default"
@@ -56,6 +77,33 @@ export function AppSidebar() {
                         </SidebarMenu>
                     </SidebarGroupContent>
                 </SidebarGroup>
+
+                {chats.length > 0 && (
+                    <SidebarGroup className="mt-8">
+                        <SidebarGroupContent>
+                            <SidebarMenu className="space-y-0.5">
+                                <SidebarMenuItem className="group-data-[collapsible=icon]:hidden px-2 mb-2">
+                                    <div className="text-xs font-semibold text-muted-foreground/60 uppercase tracking-wider">
+                                        Recent
+                                    </div>
+                                </SidebarMenuItem>
+                                {chats.map((chat) => (
+                                    <SidebarMenuItem key={chat.id}>
+                                        <Link href={`/?id=${chat.id}`}>
+                                            <SidebarMenuButton
+                                                className="text-sm font-normal py-2 h-auto truncate transition-colors hover:bg-muted/50 group-data-[collapsible=icon]:hidden px-2"
+                                                isActive={currentChatId === chat.id}
+                                                tooltip={chat.title}
+                                            >
+                                                <span className="truncate">{chat.title}</span>
+                                            </SidebarMenuButton>
+                                        </Link>
+                                    </SidebarMenuItem>
+                                ))}
+                            </SidebarMenu>
+                        </SidebarGroupContent>
+                    </SidebarGroup>
+                )}
             </SidebarContent>
         </Sidebar>
     )
