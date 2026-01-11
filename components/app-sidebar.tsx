@@ -21,6 +21,7 @@ import {
     SidebarGroupContent,
     SidebarTrigger,
 } from "@/components/ui/sidebar"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { getChatHistory, deleteChat, ChatMetadata } from "@/lib/storage"
 import Link from "next/link"
 import { useSearchParams, useRouter } from "next/navigation"
@@ -34,6 +35,9 @@ export function AppSidebar() {
     const [isSearchOpen, setIsSearchOpen] = React.useState(false)
     const [searchQuery, setSearchQuery] = React.useState("")
     const [filteredChats, setFilteredChats] = React.useState<ChatMetadata[]>([])
+
+    // Delete Confirmation State
+    const [chatToDelete, setChatToDelete] = React.useState<string | null>(null)
 
     const loadChats = React.useCallback(() => {
         setChats(getChatHistory())
@@ -65,12 +69,19 @@ export function AppSidebar() {
         return () => window.removeEventListener("chats_updated", loadChats)
     }, [loadChats])
 
-    const handleDelete = (e: React.MouseEvent, id: string) => {
+    const handleDeleteClick = (e: React.MouseEvent, id: string) => {
         e.preventDefault()
         e.stopPropagation()
-        deleteChat(id)
-        if (currentChatId === id) {
-            router.push("/")
+        setChatToDelete(id)
+    }
+
+    const confirmDelete = () => {
+        if (chatToDelete) {
+            deleteChat(chatToDelete)
+            if (currentChatId === chatToDelete) {
+                router.push("/")
+            }
+            setChatToDelete(null)
         }
     }
 
@@ -79,14 +90,18 @@ export function AppSidebar() {
             <SidebarHeader className="px-2 py-4 flex flex-row items-center justify-between group-data-[collapsible=icon]:justify-center">
                 <SidebarTrigger className="h-10 w-10 text-foreground hover:bg-muted [&_svg]:size-5 ml-1 group-data-[collapsible=icon]:ml-0 group-data-[collapsible=icon]:mx-auto" />
                 <div className="group-data-[collapsible=icon]:hidden">
-                    <SidebarMenuButton
-                        size="default"
-                        tooltip="Search (Cmd+K)"
-                        className="h-10 w-10 p-0 flex items-center justify-center transition-colors hover:bg-muted"
-                        onClick={() => setIsSearchOpen(true)}
-                    >
-                        <Search className="h-5 w-5" />
-                    </SidebarMenuButton>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <SidebarMenuButton
+                                size="default"
+                                className="h-10 w-10 p-0 flex items-center justify-center transition-colors hover:bg-muted"
+                                onClick={() => setIsSearchOpen(true)}
+                            >
+                                <Search className="h-5 w-5" />
+                            </SidebarMenuButton>
+                        </TooltipTrigger>
+                        <TooltipContent side="right">Search (Cmd+K)</TooltipContent>
+                    </Tooltip>
                 </div>
             </SidebarHeader>
 
@@ -106,14 +121,18 @@ export function AppSidebar() {
                                     </SidebarMenuButton>
                                 </Link>
                                 <Link href="/?temp=true" className="group-data-[collapsible=icon]:hidden">
-                                    <SidebarMenuButton
-                                        size="default"
-                                        className="h-10 w-10 rounded-xl flex items-center justify-center p-0 transition-all duration-200 hover:bg-muted/80 hover:scale-[1.05] active:scale-[0.95]"
-                                        tooltip="Temporary chat"
-                                        isActive={searchParams.get("temp") === "true"}
-                                    >
-                                        <MessageSquareDashed className="h-5 w-5" />
-                                    </SidebarMenuButton>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <SidebarMenuButton
+                                                size="default"
+                                                className="h-10 w-10 rounded-xl flex items-center justify-center p-0 transition-all duration-200 hover:bg-muted/80 hover:scale-[1.05] active:scale-[0.95]"
+                                                isActive={searchParams.get("temp") === "true"}
+                                            >
+                                                <MessageSquareDashed className="h-5 w-5" />
+                                            </SidebarMenuButton>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="right">Temporary chat</TooltipContent>
+                                    </Tooltip>
                                 </Link>
                             </SidebarMenuItem>
                         </SidebarMenu>
@@ -133,18 +152,27 @@ export function AppSidebar() {
                                     <SidebarMenuItem key={chat.id} className="group/item">
                                         <Link href={`/?id=${chat.id}`} className="relative block">
                                             <SidebarMenuButton
-                                                className="text-sm font-normal py-2 h-auto truncate transition-colors hover:bg-muted/50 group-data-[collapsible=icon]:hidden px-2 pr-8"
+                                                className="text-sm font-normal py-2 h-8 truncate transition-all duration-200 hover:bg-black/5 dark:hover:bg-white/5 group-data-[collapsible=icon]:hidden px-2 pr-8 data-[active=true]:bg-black/5 dark:data-[active=true]:bg-white/10"
                                                 isActive={currentChatId === chat.id}
                                                 tooltip={chat.title}
                                             >
                                                 <span className="truncate">{chat.title}</span>
                                             </SidebarMenuButton>
-                                            <button
-                                                onClick={(e) => handleDelete(e, chat.id)}
-                                                className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover/item:opacity-100 p-1 hover:bg-muted rounded-md transition-all text-muted-foreground hover:text-destructive"
-                                            >
-                                                <Trash2 className="h-3.5 w-3.5" />
-                                            </button>
+
+                                            {/* Gradient fade for delete button area */}
+                                            <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-sidebar via-sidebar/80 to-transparent opacity-0 group-hover/item:opacity-100 transition-opacity pointer-events-none rounded-r-md" />
+
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <button
+                                                        onClick={(e) => handleDeleteClick(e, chat.id)}
+                                                        className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover/item:opacity-100 p-1.5 hover:bg-black/5 dark:hover:bg-white/10 rounded-md transition-all text-muted-foreground/70 hover:text-destructive z-10"
+                                                    >
+                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                    </button>
+                                                </TooltipTrigger>
+                                                <TooltipContent side="right">Delete chat</TooltipContent>
+                                            </Tooltip>
                                         </Link>
                                     </SidebarMenuItem>
                                 ))}
@@ -234,6 +262,38 @@ export function AppSidebar() {
                                     </div>
                                 </button>
                             ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Delete Confirmation Modal */}
+            {chatToDelete && (
+                <div
+                    className="fixed inset-0 z-[60] bg-black/5 backdrop-blur-[2px] flex items-center justify-center p-4"
+                    onClick={(e) => {
+                        if (e.target === e.currentTarget) setChatToDelete(null)
+                    }}
+                >
+                    <div className="bg-card border rounded-xl shadow-2xl w-full max-w-sm p-6 animate-in fade-in-0 zoom-in-95 duration-200 space-y-4">
+                        <div className="space-y-2">
+                            <h3 className="font-semibold text-lg leading-none tracking-tight">Delete chat?</h3>
+                            <p className="text-sm text-muted-foreground">
+                                This will permanently delete this conversation/
+                            </p>
+                        </div>
+                        <div className="flex items-center justify-end gap-2 pt-2">
+                            <button
+                                onClick={() => setChatToDelete(null)}
+                                className="px-4 py-2 text-sm font-medium rounded-md hover:bg-muted transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmDelete}
+                                className="px-4 py-2 text-sm font-medium rounded-md bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors"
+                            >
+                                Delete
+                            </button>
                         </div>
                     </div>
                 </div>
