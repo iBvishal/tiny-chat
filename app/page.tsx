@@ -288,9 +288,7 @@ export default function Home() {
         <div className="mx-auto max-w-3xl space-y-6 min-h-full flex flex-col">
           {messages.length === 0 ? (
             <div className="flex-1 flex items-center justify-center">
-              <h1 className="text-4xl font-semibold text-muted-foreground/10 select-none">
-                tiny-chat
-              </h1>
+              <TypewriterTitle />
             </div>
           ) : (
             <div className="space-y-6 pb-4 flex-1">
@@ -311,6 +309,9 @@ export default function Home() {
                       />
                     ) : (
                       <div className="max-w-full text-sm break-words overflow-hidden text-foreground mr-12 pt-1">
+                        {msg.role === "assistant" && (
+                          <TypewriterThinking done={true} />
+                        )}
                         <div className="prose prose-sm dark:prose-invert max-w-none overflow-x-hidden break-words">
                           <ReactMarkdown
                             remarkPlugins={[remarkGfm]}
@@ -516,7 +517,7 @@ function CodeCopyButton({ text }: { text: string }) {
     </Button>
   )
 }
-function TypewriterThinking() {
+function TypewriterThinking({ done = false }: { done?: boolean }) {
   const words = ["thinking...", "reasoning...", "processing...", "pondering...", "searching...", "analysing...", "responding..."]
   const [index, setIndex] = React.useState(0)
   const [subIndex, setSubIndex] = React.useState(0)
@@ -525,6 +526,8 @@ function TypewriterThinking() {
 
   // typewriter effect
   React.useEffect(() => {
+    if (done) return
+
     if (subIndex === words[index].length + 1 && !reverse) {
       setTimeout(() => setReverse(true), 1500) // wait at full word
       return
@@ -541,23 +544,30 @@ function TypewriterThinking() {
     }, reverse ? 40 : 80)
 
     return () => clearTimeout(timeout)
-  }, [subIndex, index, reverse])
+  }, [subIndex, index, reverse, done])
 
   // blinker
   React.useEffect(() => {
+    if (done) return
     const timeout2 = setTimeout(() => {
       setBlink((prev) => !prev)
     }, 500)
     return () => clearTimeout(timeout2)
-  }, [blink])
+  }, [blink, done])
+
+  if (done) {
+    return (
+      <div className="flex items-center gap-0.5 mb-2 font-mono uppercase text-[10px] font-bold tracking-widest select-none text-muted-foreground/50">
+        <span>tiny-response</span>
+      </div>
+    )
+  }
 
   return (
-    <div className="flex items-center gap-0.5 ml-2 mt-4 font-mono uppercase text-sm font-bold tracking-[0.1em] select-none">
-      <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 animate-gradient-x">
-        <span className="opacity-70">tiny-</span>
-        <span>{words[index].substring(0, subIndex)}</span>
-      </span>
-      <span className={`${blink ? "opacity-100" : "opacity-0"} ml-1 transition-opacity duration-100 inline-block w-1.5 h-4 bg-purple-500/50 align-middle mb-0.5`} />
+    <div className="flex items-center gap-0.5 ml-2 mt-4 font-mono uppercase text-sm font-bold tracking-[0.1em] select-none text-foreground">
+      <span>tiny-</span>
+      <span>{words[index].substring(0, subIndex)}</span>
+      <span className={`${blink ? "opacity-100" : "opacity-0"} ml-1 transition-opacity duration-100 inline-block w-1.5 h-4 bg-foreground align-middle mb-0.5`} />
     </div>
   )
 }
@@ -647,3 +657,67 @@ function UserMessage({ content, onEdit }: { content: string, onEdit: (text: stri
   )
 }
 
+function TypewriterTitle() {
+  const words = React.useMemo(() => ["chats...", "thinks...", "works...", "helps :)", "writes...", "codes...", "reasons...", "dreams ;)", "builds..."], [])
+  const [index, setIndex] = React.useState(0)
+  const [subIndex, setSubIndex] = React.useState(0)
+  const [reverse, setReverse] = React.useState(false)
+  const [blink, setBlink] = React.useState(true)
+
+  // "tiny-" prefix length is 5
+  // We want to type "tiny-" first, then loop through words
+  // effectively "tiny-" is the base, and we cycle the suffix
+
+  // Actually, simpler logic:
+  // Full strings: "tiny-chat", "tiny-thinks", etc.
+  // But we want to simulate typing "tiny-" once? or re-typing it?
+  // User asked for "tiny-chats", "tiny-thinks" etc..
+  // Let's type the whole thing out, wait, delete back to "tiny-", then type next word.
+
+  const currentWord = `tiny-${words[index]}`
+
+  React.useEffect(() => {
+    // If typing forward
+    if (!reverse) {
+      if (subIndex === currentWord.length) {
+        // Finished typing word, wait then reverse
+        setTimeout(() => setReverse(true), 1500)
+        return
+      }
+
+      const timeout = setTimeout(() => {
+        setSubIndex((prev) => prev + 1)
+      }, 150)
+      return () => clearTimeout(timeout)
+    }
+    // If deleting (reverse)
+    else {
+      // Don't delete "tiny-" (length 5)
+      if (subIndex === 5) {
+        setReverse(false)
+        setIndex((prev) => (prev + 1) % words.length)
+        return
+      }
+
+      const timeout = setTimeout(() => {
+        setSubIndex((prev) => prev - 1)
+      }, 75) // Deleting is faster
+      return () => clearTimeout(timeout)
+    }
+  }, [subIndex, index, reverse, currentWord, words])
+
+  // blinker
+  React.useEffect(() => {
+    const timeout2 = setTimeout(() => {
+      setBlink((prev) => !prev)
+    }, 500)
+    return () => clearTimeout(timeout2)
+  }, [blink])
+
+  return (
+    <h1 className="text-4xl font-semibold text-muted-foreground/20 select-none flex items-center">
+      <span>{currentWord.substring(0, subIndex)}</span>
+      <span className={`${blink ? "opacity-100" : "opacity-0"} ml-1 transition-opacity duration-100 inline-block w-1 h-8 bg-muted-foreground/20`} />
+    </h1>
+  )
+}
