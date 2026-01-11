@@ -1,8 +1,16 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-// Centralized model name for easy management
-const GEMINI_MODEL = "gemini-3-flash-preview";
+
+// Available models for chat
+export const AVAILABLE_MODELS = [
+    { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash", category: "Fast & Efficient" },
+    { id: "gemini-2.5-flash-lite", name: "Gemini 2.5 Flash Lite", category: "Ultra Fast" },
+    { id: "gemini-1.5-flash", name: "Gemini 1.5 Flash", category: "Balanced" },
+    { id: "gemini-1.5-pro", name: "Gemini 1.5 Pro", category: "Advanced" },
+] as const;
+
+export const DEFAULT_MODEL = "gemini-2.5-flash";
 
 const SYSTEM_PROMPT = `You are Tiny Chat, a minimal and helpful AI assistant. 
 Your responses should be concise, accurate, and formatted using clean Markdown. 
@@ -15,10 +23,10 @@ if (!apiKey) {
 
 const genAI = new GoogleGenerativeAI(apiKey || "");
 
-export const getGeminiResponse = async (prompt: string, history: any[] = []) => {
+export const getGeminiResponse = async (prompt: string, history: any[] = [], modelName: string = DEFAULT_MODEL) => {
     try {
         const model = genAI.getGenerativeModel({
-            model: GEMINI_MODEL,
+            model: modelName,
             systemInstruction: SYSTEM_PROMPT
         });
 
@@ -40,10 +48,10 @@ export const getGeminiResponse = async (prompt: string, history: any[] = []) => 
     }
 };
 
-export const streamGeminiResponse = async (prompt: string, history: any[] = [], onChunk: (chunk: string) => void) => {
+export const streamGeminiResponse = async (prompt: string, history: any[] = [], onChunk: (chunk: string) => void, modelName: string = DEFAULT_MODEL) => {
     try {
         const model = genAI.getGenerativeModel({
-            model: GEMINI_MODEL,
+            model: modelName,
             systemInstruction: SYSTEM_PROMPT
         });
 

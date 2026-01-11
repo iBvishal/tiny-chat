@@ -2,11 +2,12 @@
 
 import * as React from "react"
 import { Separator } from "@/components/ui/separator"
-import { ArrowUp, Loader2, Copy, Check, AlertCircle, RotateCw, Volume2, Download } from "lucide-react"
+import { ArrowUp, Loader2, Copy, Check, AlertCircle, RotateCw, Volume2, Download, ChevronDown, ChevronUp, Edit } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { streamGeminiResponse } from "@/lib/gemini"
+import { streamGeminiResponse, DEFAULT_MODEL } from "@/lib/gemini"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { ModelSelector } from "@/components/model-selector"
 import { getChatHistory, getChatMessages, saveChat, generateId, ChatSession, Message, ChatMetadata } from "@/lib/storage"
 import { useSearchParams, useRouter } from "next/navigation"
 import ReactMarkdown from "react-markdown"
@@ -24,7 +25,10 @@ export default function Home() {
   const [messages, setMessages] = React.useState<Message[]>([])
   const [isLoading, setIsLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
+  const [editingMessageIndex, setEditingMessageIndex] = React.useState<number | null>(null)
+  const [selectedModel, setSelectedModel] = React.useState<string>(DEFAULT_MODEL)
   const scrollRef = React.useRef<HTMLDivElement>(null)
+  const textareaRef = React.useRef<HTMLTextAreaElement>(null)
 
   const [sessionMetadata, setSessionMetadata] = React.useState<ChatMetadata | null>(null)
 
@@ -73,9 +77,18 @@ export default function Home() {
 
     if (overrideBaseMessages) {
       baseMsgs = overrideBaseMessages
+    } else if (editingMessageIndex !== null) {
+      // Editing mode: replace the message at editingMessageIndex and remove everything after
+      baseMsgs = [...messages.slice(0, editingMessageIndex), { role: "user", content: promptValue }]
+      setEditingMessageIndex(null)
     } else {
       baseMsgs = [...messages, { role: "user", content: promptValue }]
-      setInput("")
+    }
+
+    setInput("")
+    // Reset textarea height
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto"
     }
 
     setIsLoading(true)
@@ -108,7 +121,7 @@ export default function Home() {
             return streamMessages
           })
         }
-      })
+      }, selectedModel)
 
       // Ensure minimum animation time has passed
       const elapsed = Date.now() - animationStartTime
@@ -227,7 +240,7 @@ export default function Home() {
   return (
     <div className="flex flex-col h-screen bg-background max-w-full overflow-x-hidden">
       {/* Header */}
-      <header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b px-4">
+      <header className="relative flex h-14 shrink-0 items-center justify-between gap-2 border-b px-4">
         <div className="flex items-center gap-2 text-sm text-muted-foreground overflow-hidden">
           <Separator orientation="vertical" className="h-4" />
           <span className="font-medium text-foreground truncate shrink-0">tiny-chat</span>
@@ -243,6 +256,12 @@ export default function Home() {
             </>
           )}
         </div>
+
+        {/* Center - Model Selector */}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden md:block">
+          <ModelSelector selectedModel={selectedModel} onModelChange={setSelectedModel} />
+        </div>
+
         <div className="flex items-center gap-2">
           {messages.length > 0 && (
             <Tooltip>
@@ -262,10 +281,10 @@ export default function Home() {
           )}
           <ThemeToggle />
         </div>
-      </header>
+      </header >
 
       {/* Content Area */}
-      <div className="flex-1 overflow-auto p-4 md:p-8 lg:p-12 scroll-smooth" ref={scrollRef}>
+      < div className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-8 lg:p-12 scroll-smooth" ref={scrollRef} >
         <div className="mx-auto max-w-3xl space-y-6 min-h-full flex flex-col">
           {messages.length === 0 ? (
             <div className="flex-1 flex items-center justify-center">
@@ -282,53 +301,58 @@ export default function Home() {
                     key={i}
                     className={`flex flex-col group ${msg.role === "user" ? "items-end" : "items-start"}`}
                   >
-                    <div
-                      className={`max-w-[100%] text-sm break-words overflow-hidden ${msg.role === "user"
-                        ? "bg-muted/80 text-foreground rounded-2xl rounded-tr-none px-4 pt-3 pb-2 ml-12"
-                        : "text-foreground mr-12 pt-1" // No background or border for assistant
-                        }`}
-                    >
-                      <div className="prose prose-sm dark:prose-invert max-w-none overflow-x-auto">
-                        <ReactMarkdown
-                          remarkPlugins={[remarkGfm]}
-                          components={{
-                            code({ node, inline, className, children, ...props }: any) {
-                              const match = /language-(\w+)/.exec(className || '')
-                              return !inline && match ? (
-                                <div className="relative group/code">
-                                  <div className="absolute right-3 top-3 opacity-0 group-hover/code:opacity-100 transition-opacity">
-                                    <CodeCopyButton text={String(children).replace(/\n$/, '')} />
+                    {msg.role === "user" ? (
+                      <UserMessage
+                        content={msg.content}
+                        onEdit={(text) => {
+                          setInput(text)
+                          setEditingMessageIndex(i)
+                        }}
+                      />
+                    ) : (
+                      <div className="max-w-full text-sm break-words overflow-hidden text-foreground mr-12 pt-1">
+                        <div className="prose prose-sm dark:prose-invert max-w-none overflow-x-hidden break-words">
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            components={{
+                              code({ node, inline, className, children, ...props }: any) {
+                                const match = /language-(\w+)/.exec(className || '')
+                                return !inline && match ? (
+                                  <div className="relative group/code">
+                                    <div className="absolute right-3 top-3 opacity-0 group-hover/code:opacity-100 transition-opacity">
+                                      <CodeCopyButton text={String(children).replace(/\n$/, '')} />
+                                    </div>
+                                    <SyntaxHighlighter
+                                      {...props}
+                                      style={vscDarkPlus}
+                                      language={match[1]}
+                                      PreTag="div"
+                                      className="!my-0 !bg-transparent"
+                                    >
+                                      {String(children).replace(/\n$/, '')}
+                                    </SyntaxHighlighter>
                                   </div>
-                                  <SyntaxHighlighter
-                                    {...props}
-                                    style={vscDarkPlus}
-                                    language={match[1]}
-                                    PreTag="div"
-                                    className="!my-0 !bg-transparent"
-                                  >
-                                    {String(children).replace(/\n$/, '')}
-                                  </SyntaxHighlighter>
-                                </div>
-                              ) : (
-                                <code {...props} className={className}>
-                                  {children}
-                                </code>
-                              )
-                            }
-                          }}
-                        >
-                          {msg.content}
-                        </ReactMarkdown>
-                      </div>
+                                ) : (
+                                  <code {...props} className={className}>
+                                    {children}
+                                  </code>
+                                )
+                              }
+                            }}
+                          >
+                            {msg.content}
+                          </ReactMarkdown>
+                        </div>
 
-                      {msg.role === "assistant" && msg.content && !isLoading && (
-                        <ResponseActions
-                          content={msg.content}
-                          onListen={(text, speaking) => handleListen(text, speaking)}
-                          onRedo={handleRedo}
-                        />
-                      )}
-                    </div>
+                        {msg.content && !isLoading && (
+                          <ResponseActions
+                            content={msg.content}
+                            onListen={(text, speaking) => handleListen(text, speaking)}
+                            onRedo={handleRedo}
+                          />
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -338,10 +362,10 @@ export default function Home() {
             </div>
           )}
         </div>
-      </div>
+      </div >
 
       {/* Input Area */}
-      <div className="p-4 md:p-8 shrink-0">
+      < div className="p-4 md:p-8 shrink-0" >
         <div className="mx-auto max-w-3xl">
           {error && (
             <div className="mb-4 p-3 bg-destructive/10 border border-destructive/30 rounded-xl text-destructive text-xs flex items-start gap-3 animate-in fade-in slide-in-from-bottom-2">
@@ -354,14 +378,28 @@ export default function Home() {
           )}
           <form
             onSubmit={handleSubmit}
-            className="relative flex items-center bg-muted/30 rounded-2xl border px-4 py-2 transition-all focus-within:bg-muted/50"
+            className="relative flex items-end bg-muted/30 rounded-2xl border px-4 py-3 transition-all focus-within:bg-muted/50"
           >
-            <input
+            <textarea
+              ref={textareaRef}
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={(e) => {
+                setInput(e.target.value)
+                // Auto-resize
+                e.target.style.height = "auto"
+                e.target.style.height = `${Math.min(e.target.scrollHeight, 72)}px` // 72px is roughly 3 lines (24px line-height)
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault()
+                  handleSubmit()
+                }
+              }}
               placeholder="Ask tiny..."
               disabled={isLoading}
-              className="flex-1 bg-transparent border-none focus:ring-0 text-sm py-3 outline-none disabled:opacity-50"
+              rows={1}
+              className="flex-1 bg-transparent border-none focus:ring-0 text-sm py-1 outline-none disabled:opacity-50 resize-none max-h-[72px]"
+              style={{ minHeight: "24px" }}
             />
             <div className="flex items-center gap-2 ml-2">
               <Tooltip>
@@ -381,8 +419,8 @@ export default function Home() {
             </div>
           </form>
         </div>
-      </div>
-    </div>
+      </div >
+    </div >
   )
 }
 
@@ -523,3 +561,89 @@ function TypewriterThinking() {
     </div>
   )
 }
+function UserMessage({ content, onEdit }: { content: string, onEdit: (text: string) => void }) {
+  const [isExpanded, setIsExpanded] = React.useState(false)
+  const [copied, setCopied] = React.useState(false)
+
+  const CHAR_LIMIT = 200
+  const isLong = content.length > CHAR_LIMIT
+  const displayContent = isLong && !isExpanded ? content.slice(0, CHAR_LIMIT) + "..." : content
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(content)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <div className="relative group/user max-w-full">
+      {/* Action buttons - top left */}
+      <div className="absolute -left-16 top-0 flex items-center gap-1 opacity-0 group-hover/user:opacity-100 transition-opacity">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-muted-foreground/70 hover:text-foreground hover:bg-muted rounded-lg"
+              onClick={handleCopy}
+            >
+              {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="text-[10px] px-2 py-1">{copied ? "Copied" : "Copy"}</TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-muted-foreground/70 hover:text-foreground hover:bg-muted rounded-lg"
+              onClick={() => onEdit(content)}
+            >
+              <Edit className="h-3.5 w-3.5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="text-[10px] px-2 py-1">Edit</TooltipContent>
+        </Tooltip>
+      </div>
+
+      {/* Message bubble */}
+      <div className="bg-muted/80 text-foreground rounded-2xl rounded-tr-none px-4 pt-3 pb-2 ml-12 text-sm break-words relative">
+        <div className="whitespace-pre-wrap">{displayContent}</div>
+
+        {/* Expand/Collapse button */}
+        {isLong && (
+          <div className="flex justify-end mt-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 text-[10px] text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg flex items-center gap-1"
+                  onClick={() => setIsExpanded(!isExpanded)}
+                >
+                  {isExpanded ? (
+                    <>
+                      <ChevronUp className="h-3 w-3" />
+                      <span>Collapse text</span>
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="h-3 w-3" />
+                      <span>Expand text</span>
+                    </>
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-[10px] px-2 py-1">
+                {isExpanded ? "Collapse" : "Expand"}
+              </TooltipContent>
+            </Tooltip>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
