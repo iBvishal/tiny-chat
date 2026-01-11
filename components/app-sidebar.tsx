@@ -50,10 +50,10 @@ export function AppSidebar() {
 
     return (
         <Sidebar variant="sidebar" collapsible="icon">
-            <SidebarHeader className="p-4 flex flex-row items-center justify-between">
-                <SidebarTrigger className="h-8 w-8 text-muted-foreground hover:bg-sidebar-accent" />
+            <SidebarHeader className="px-2 py-4 flex flex-row items-center justify-between group-data-[collapsible=icon]:justify-center">
+                <SidebarTrigger className="h-10 w-10 text-foreground hover:bg-muted [&_svg]:size-5 ml-1.5 group-data-[collapsible=icon]:ml-0 group-data-[collapsible=icon]:mx-auto" />
                 <div className="group-data-[collapsible=icon]:hidden">
-                    <SidebarMenuButton size="default" tooltip="Search" className="h-8 w-8 p-0 flex items-center justify-center transition-colors hover:bg-sidebar-accent">
+                    <SidebarMenuButton size="default" tooltip="Search" className="h-10 w-10 p-0 flex items-center justify-center transition-colors hover:bg-muted">
                         <Search className="h-5 w-5" />
                     </SidebarMenuButton>
                 </div>
@@ -66,7 +66,7 @@ export function AppSidebar() {
                             <SidebarMenuItem className="flex items-center gap-2">
                                 <Link href="/" className="flex-1">
                                     <SidebarMenuButton
-                                        className="w-full bg-muted/40 hover:bg-muted/60 h-10 px-4 rounded-xl transition-all duration-200 font-medium border border-transparent group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:aspect-square group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:bg-transparent hover:scale-[1.02] active:scale-[0.98]"
+                                        className="w-full bg-muted/40 hover:bg-muted/60 h-10 px-4 rounded-xl transition-all duration-200 font-medium border border-transparent group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:text-foreground hover:scale-[1.02] active:scale-[0.98]"
                                         tooltip="New chat"
                                         isActive={!currentChatId}
                                     >
