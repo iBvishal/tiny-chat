@@ -5,6 +5,7 @@ import {
     Search,
     SquarePen,
     MessageSquareDashed,
+    Trash2,
 } from "lucide-react"
 
 import {
@@ -18,18 +19,18 @@ import {
     SidebarGroupContent,
     SidebarTrigger,
 } from "@/components/ui/sidebar"
-import { getChats, ChatSession } from "@/lib/storage"
+import { getChatHistory, deleteChat, ChatMetadata } from "@/lib/storage"
 import Link from "next/link"
-import { usePathname, useSearchParams } from "next/navigation"
+import { useSearchParams, useRouter } from "next/navigation"
 
 export function AppSidebar() {
-    const [chats, setChats] = React.useState<ChatSession[]>([])
-    const pathname = usePathname()
+    const [chats, setChats] = React.useState<ChatMetadata[]>([])
+    const router = useRouter()
     const searchParams = useSearchParams()
     const currentChatId = searchParams.get("id")
 
     const loadChats = React.useCallback(() => {
-        setChats(getChats())
+        setChats(getChatHistory())
     }, [])
 
     React.useEffect(() => {
@@ -37,6 +38,15 @@ export function AppSidebar() {
         window.addEventListener("chats_updated", loadChats)
         return () => window.removeEventListener("chats_updated", loadChats)
     }, [loadChats])
+
+    const handleDelete = (e: React.MouseEvent, id: string) => {
+        e.preventDefault()
+        e.stopPropagation()
+        deleteChat(id)
+        if (currentChatId === id) {
+            router.push("/")
+        }
+    }
 
     return (
         <Sidebar variant="sidebar" collapsible="icon">
@@ -88,15 +98,21 @@ export function AppSidebar() {
                                     </div>
                                 </SidebarMenuItem>
                                 {chats.map((chat) => (
-                                    <SidebarMenuItem key={chat.id}>
-                                        <Link href={`/?id=${chat.id}`}>
+                                    <SidebarMenuItem key={chat.id} className="group/item">
+                                        <Link href={`/?id=${chat.id}`} className="relative block">
                                             <SidebarMenuButton
-                                                className="text-sm font-normal py-2 h-auto truncate transition-colors hover:bg-muted/50 group-data-[collapsible=icon]:hidden px-2"
+                                                className="text-sm font-normal py-2 h-auto truncate transition-colors hover:bg-muted/50 group-data-[collapsible=icon]:hidden px-2 pr-8"
                                                 isActive={currentChatId === chat.id}
                                                 tooltip={chat.title}
                                             >
                                                 <span className="truncate">{chat.title}</span>
                                             </SidebarMenuButton>
+                                            <button
+                                                onClick={(e) => handleDelete(e, chat.id)}
+                                                className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover/item:opacity-100 p-1 hover:bg-muted rounded-md transition-all text-muted-foreground hover:text-destructive"
+                                            >
+                                                <Trash2 className="h-3.5 w-3.5" />
+                                            </button>
                                         </Link>
                                     </SidebarMenuItem>
                                 ))}

@@ -6,7 +6,7 @@ import { Share, ArrowUp, Loader2, Copy, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { streamGeminiResponse } from "@/lib/gemini"
-import { getChats, saveChat, generateId, ChatSession, Message } from "@/lib/storage"
+import { getChatHistory, getChatMessages, saveChat, generateId, ChatSession, Message, ChatMetadata } from "@/lib/storage"
 import { useSearchParams, useRouter } from "next/navigation"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
@@ -23,24 +23,27 @@ export default function Home() {
   const [isLoading, setIsLoading] = React.useState(false)
   const scrollRef = React.useRef<HTMLDivElement>(null)
 
-  const [session, setSession] = React.useState<ChatSession | null>(null)
+  const [sessionMetadata, setSessionMetadata] = React.useState<ChatMetadata | null>(null)
 
+  // Load chat on mount or ID change
   React.useEffect(() => {
     if (chatId) {
-      const chats = getChats()
-      const existingChat = chats.find(c => c.id === chatId)
-      if (existingChat) {
-        setMessages(existingChat.messages)
-        setSession(existingChat)
+      const history = getChatHistory()
+      const metadata = history.find(c => c.id === chatId)
+      if (metadata) {
+        const fullMessages = getChatMessages(chatId)
+        setMessages(fullMessages)
+        setSessionMetadata(metadata)
       } else {
         router.push("/")
       }
     } else {
       setMessages([])
-      setSession(null)
+      setSessionMetadata(null)
     }
   }, [chatId, router])
 
+  // Auto-scroll to bottom of chat
   React.useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
@@ -58,7 +61,7 @@ export default function Home() {
     setIsLoading(true)
 
     const currentId = chatId || generateId()
-    const firstPrompt = messages.length === 0 ? input : (session?.title || "New Chat")
+    const firstPrompt = messages.length === 0 ? input : (sessionMetadata?.title || "New Chat")
 
     const assistantPlaceholder: Message = { role: "assistant", content: "" }
     const updatedMessages = [...newMessages, assistantPlaceholder]
@@ -87,7 +90,7 @@ export default function Home() {
       }
 
       saveChat(updatedSession)
-      setSession(updatedSession)
+      setSessionMetadata({ id: updatedSession.id, title: updatedSession.title, updatedAt: updatedSession.updatedAt })
 
       if (!chatId) {
         window.history.pushState(null, "", `/?id=${currentId}`)
@@ -110,10 +113,10 @@ export default function Home() {
         <div className="flex items-center gap-2 text-sm text-muted-foreground overflow-hidden">
           <Separator orientation="vertical" className="h-4" />
           <span className="font-medium text-foreground truncate shrink-0">tiny-chat</span>
-          {session && (
+          {sessionMetadata && (
             <>
               <span className="text-muted-foreground/40 shrink-0">/</span>
-              <span className="truncate text-xs text-muted-foreground font-normal">{session.title}</span>
+              <span className="truncate text-xs text-muted-foreground font-normal">{sessionMetadata.title}</span>
             </>
           )}
         </div>

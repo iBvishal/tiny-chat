@@ -5,18 +5,35 @@ export type Message = {
     content: string
 }
 
-export type ChatSession = {
+export type ChatMetadata = {
     id: string
     title: string
-    messages: Message[]
     updatedAt: number
 }
 
-const STORAGE_KEY = "tiny_chat_history"
+export type ChatSession = ChatMetadata & {
+    messages: Message[]
+}
 
-export const getChats = (): ChatSession[] => {
+const METADATA_KEY = "tiny_chat_sessions"
+const CONTENT_PREFIX = "tiny_chat_content_"
+
+// Get just the lightweight list for the sidebar
+export const getChatHistory = (): ChatMetadata[] => {
     if (typeof window === "undefined") return []
-    const stored = localStorage.getItem(STORAGE_KEY)
+    const stored = localStorage.getItem(METADATA_KEY)
+    if (!stored) return []
+    try {
+        return JSON.parse(stored)
+    } catch (e) {
+        return []
+    }
+}
+
+// Get full messages for a specific chat only when needed
+export const getChatMessages = (id: string): Message[] => {
+    if (typeof window === "undefined") return []
+    const stored = localStorage.getItem(`${CONTENT_PREFIX}${id}`)
     if (!stored) return []
     try {
         return JSON.parse(stored)
@@ -26,24 +43,40 @@ export const getChats = (): ChatSession[] => {
 }
 
 export const saveChat = (chat: ChatSession) => {
-    const chats = getChats()
-    const index = chats.findIndex(c => c.id === chat.id)
+    if (typeof window === "undefined") return
 
-    if (index >= 0) {
-        chats[index] = { ...chat, updatedAt: Date.now() }
-    } else {
-        // If it's a new chat, add it to the beginning
-        chats.unshift({ ...chat, updatedAt: Date.now() })
+    // 1. Update Metadata List (Lightweight)
+    const history = getChatHistory()
+    const index = history.findIndex(c => c.id === chat.id)
+
+    const metadata: ChatMetadata = {
+        id: chat.id,
+        title: chat.title,
+        updatedAt: Date.now()
     }
 
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(chats))
-    // Dispatch a custom event to notify other components (like Sidebar)
+    if (index >= 0) {
+        history[index] = metadata
+    } else {
+        history.unshift(metadata)
+    }
+
+    localStorage.setItem(METADATA_KEY, JSON.stringify(history))
+
+    // 2. Update Content (Heavier, stored separately)
+    localStorage.setItem(`${CONTENT_PREFIX}${chat.id}`, JSON.stringify(chat.messages))
+
+    // Notify listeners
     window.dispatchEvent(new Event("chats_updated"))
 }
 
 export const deleteChat = (id: string) => {
-    const chats = getChats().filter(c => c.id !== id)
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(chats))
+    if (typeof window === "undefined") return
+
+    const history = getChatHistory().filter(c => c.id !== id)
+    localStorage.setItem(METADATA_KEY, JSON.stringify(history))
+    localStorage.removeItem(`${CONTENT_PREFIX}${id}`)
+
     window.dispatchEvent(new Event("chats_updated"))
 }
 
