@@ -34,10 +34,10 @@ This document tracks the progress of the **tiny-chat** application, a lightweigh
 - [x] Populate the Sidebar with **Recent Chats** (dynamically loaded from localStorage).
 - [x] Add the ability to start a "New Chat" and switch between sessions.
 
-## 🛠️ Phase 5: Polish & Error Handling
-- [ ] Handle API rate limits and connection errors gracefully.
-- [ ] Optimize prompts (System instructions) for the best "tiny-chat" experience.
-- [ ] Add "Temporary Chat" mode (session-only, no persistence).
+## ✅ Phase 5: Polish & Error Handling
+- [x] Handle API rate limits and connection errors gracefully with UI feedback.
+- [x] Optimize prompts (System instructions) for the best "tiny-chat" experience.
+- [x] Add "Temporary Chat" mode (session-only, no persistence).
 
 ---
 

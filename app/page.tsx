@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { Separator } from "@/components/ui/separator"
-import { Share, ArrowUp, Loader2, Copy, Check } from "lucide-react"
+import { Share, ArrowUp, Loader2, Copy, Check, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { streamGeminiResponse } from "@/lib/gemini"
@@ -17,17 +17,23 @@ export default function Home() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const chatId = searchParams.get("id")
+  const isTemporary = searchParams.get("temp") === "true"
 
   const [input, setInput] = React.useState("")
   const [messages, setMessages] = React.useState<Message[]>([])
   const [isLoading, setIsLoading] = React.useState(false)
+  const [error, setError] = React.useState<string | null>(null)
   const scrollRef = React.useRef<HTMLDivElement>(null)
 
   const [sessionMetadata, setSessionMetadata] = React.useState<ChatMetadata | null>(null)
 
   // Load chat on mount or ID change
   React.useEffect(() => {
-    if (chatId) {
+    setError(null)
+    if (isTemporary) {
+      setMessages([])
+      setSessionMetadata({ id: "temp", title: "Temporary Chat", updatedAt: Date.now() })
+    } else if (chatId) {
       const history = getChatHistory()
       const metadata = history.find(c => c.id === chatId)
       if (metadata) {
@@ -41,7 +47,7 @@ export default function Home() {
       setMessages([])
       setSessionMetadata(null)
     }
-  }, [chatId, router])
+  }, [chatId, isTemporary, router])
 
   // Auto-scroll to bottom of chat
   React.useEffect(() => {
@@ -54,13 +60,20 @@ export default function Home() {
     e?.preventDefault()
     if (!input.trim() || isLoading) return
 
+    // Check for API key
+    if (!process.env.NEXT_PUBLIC_GEMINI_API_KEY) {
+      setError("Gemini API key is missing. Please add NEXT_PUBLIC_GEMINI_API_KEY to your .env.local file.")
+      return
+    }
+
     const userMessage: Message = { role: "user", content: input }
     const newMessages = [...messages, userMessage]
     setMessages(newMessages)
     setInput("")
     setIsLoading(true)
+    setError(null)
 
-    const currentId = chatId || generateId()
+    const currentId = isTemporary ? "temp" : (chatId || generateId())
     const firstPrompt = messages.length === 0 ? input : (sessionMetadata?.title || "New Chat")
 
     const assistantPlaceholder: Message = { role: "assistant", content: "" }
@@ -81,26 +94,27 @@ export default function Home() {
         })
       })
 
-      const finalMessages: Message[] = [...newMessages, { role: "assistant", content: fullResponse }]
-      const updatedSession: ChatSession = {
-        id: currentId,
-        title: firstPrompt.length > 40 ? firstPrompt.substring(0, 37) + "..." : firstPrompt,
-        messages: finalMessages,
-        updatedAt: Date.now()
-      }
+      if (!isTemporary) {
+        const finalMessages: Message[] = [...newMessages, { role: "assistant", content: fullResponse }]
+        const updatedSession: ChatSession = {
+          id: currentId,
+          title: firstPrompt.length > 40 ? firstPrompt.substring(0, 37) + "..." : firstPrompt,
+          messages: finalMessages,
+          updatedAt: Date.now()
+        }
 
-      saveChat(updatedSession)
-      setSessionMetadata({ id: updatedSession.id, title: updatedSession.title, updatedAt: updatedSession.updatedAt })
+        saveChat(updatedSession)
+        setSessionMetadata({ id: updatedSession.id, title: updatedSession.title, updatedAt: updatedSession.updatedAt })
 
-      if (!chatId) {
-        window.history.pushState(null, "", `/?id=${currentId}`)
+        if (!chatId) {
+          window.history.pushState(null, "", `/?id=${currentId}`)
+        }
       }
-    } catch (error) {
-      console.error("Failed to get response:", error)
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: "Sorry, I encountered an error. Please check your API key." } as Message
-      ])
+    } catch (err: any) {
+      console.error("Failed to get response:", err)
+      setError(err?.message || "Sorry, I encountered an error. Please check your API key.")
+      // Remove the empty assistant placeholder on error
+      setMessages((prev) => prev.filter(m => m.content !== ""))
     } finally {
       setIsLoading(false)
     }
@@ -117,6 +131,11 @@ export default function Home() {
             <>
               <span className="text-muted-foreground/40 shrink-0">/</span>
               <span className="truncate text-xs text-muted-foreground font-normal">{sessionMetadata.title}</span>
+              {isTemporary && (
+                <div className="ml-2 px-1.5 py-0.5 bg-amber-400/10 text-amber-600 dark:text-amber-400 text-[10px] font-bold uppercase tracking-tighter rounded border border-amber-400/20 shrink-0">
+                  Temporary
+                </div>
+              )}
             </>
           )}
         </div>
@@ -151,8 +170,8 @@ export default function Home() {
                 >
                   <div
                     className={`max-w-[100%] rounded-2xl px-4 py-2.5 text-sm break-words overflow-hidden ${msg.role === "user"
-                        ? "bg-primary text-primary-foreground rounded-tr-none ml-12"
-                        : "bg-muted/50 text-foreground rounded-tl-none border mr-12"
+                      ? "bg-primary text-primary-foreground rounded-tr-none ml-12"
+                      : "bg-muted/50 text-foreground rounded-tl-none border mr-12"
                       }`}
                   >
                     <div className="prose prose-sm dark:prose-invert max-w-none overflow-x-auto">
@@ -204,6 +223,15 @@ export default function Home() {
       {/* Input Area */}
       <div className="p-4 md:p-8 shrink-0">
         <div className="mx-auto max-w-3xl">
+          {error && (
+            <div className="mb-4 p-3 bg-destructive/10 border border-destructive/30 rounded-xl text-destructive text-xs flex items-start gap-3 animate-in fade-in slide-in-from-bottom-2">
+              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="font-semibold mb-0.5 text-destructive/90">Authentication Error</p>
+                <p className="opacity-80 leading-relaxed">{error}</p>
+              </div>
+            </div>
+          )}
           <form
             onSubmit={handleSubmit}
             className="relative flex items-center bg-muted/30 rounded-2xl border px-4 py-2 transition-all focus-within:bg-muted/50"
