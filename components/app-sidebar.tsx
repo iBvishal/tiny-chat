@@ -120,20 +120,7 @@ export function AppSidebar() {
                                         <span className="group-data-[collapsible=icon]:hidden">New chat</span>
                                     </SidebarMenuButton>
                                 </Link>
-                                <Link href="/?temp=true" className="group-data-[collapsible=icon]:hidden">
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <SidebarMenuButton
-                                                size="default"
-                                                className="h-10 w-10 rounded-xl flex items-center justify-center p-0 transition-all duration-200 hover:bg-muted/80 hover:scale-[1.05] active:scale-[0.95]"
-                                                isActive={searchParams.get("temp") === "true"}
-                                            >
-                                                <MessageSquareDashed className="h-5 w-5" />
-                                            </SidebarMenuButton>
-                                        </TooltipTrigger>
-                                        <TooltipContent side="right">Temporary chat</TooltipContent>
-                                    </Tooltip>
-                                </Link>
+
                             </SidebarMenuItem>
                         </SidebarMenu>
                     </SidebarGroupContent>

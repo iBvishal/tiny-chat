@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { Separator } from "@/components/ui/separator"
-import { ArrowUp, Loader2, Copy, Check, AlertCircle, RotateCw, Volume2, Download, ChevronDown, ChevronUp, Edit } from "lucide-react"
+import { ArrowUp, Loader2, Copy, Check, AlertCircle, RotateCw, Volume2, Download, ChevronDown, ChevronUp, Edit, MessageSquareDashed } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { streamGeminiResponse, DEFAULT_MODEL } from "@/lib/gemini"
@@ -248,17 +248,14 @@ export default function Home() {
             <>
               <span className="text-muted-foreground/40 shrink-0">/</span>
               <span className="truncate text-xs text-muted-foreground font-normal">{sessionMetadata.title}</span>
-              {isTemporary && (
-                <div className="ml-2 px-1.5 py-0.5 bg-amber-400/10 text-amber-600 dark:text-amber-400 text-[10px] font-bold uppercase tracking-tighter rounded border border-amber-400/20 shrink-0">
-                  Temporary
-                </div>
-              )}
+
             </>
           )}
         </div>
 
         {/* Center - Model Selector */}
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden md:block">
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden md:flex items-center gap-4">
+          <ThemeToggle />
           <ModelSelector selectedModel={selectedModel} onModelChange={setSelectedModel} />
         </div>
 
@@ -279,7 +276,28 @@ export default function Home() {
               <TooltipContent side="bottom">Download</TooltipContent>
             </Tooltip>
           )}
-          <ThemeToggle />
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 transition-colors hover:bg-muted"
+                onClick={() => router.push("/?temp=true")}
+              >
+                <MessageSquareDashed className="h-4 w-4" />
+                <span className="sr-only">Temporary chat</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Temporary chat</TooltipContent>
+          </Tooltip>
+          {isTemporary && (
+            <div className="px-1.5 py-0.5 bg-amber-400/10 text-amber-600 dark:text-amber-400 text-[10px] font-bold uppercase tracking-tighter rounded border border-amber-400/20 shrink-0">
+              Temporary
+            </div>
+          )}
+          <div className="md:hidden">
+            <ThemeToggle />
+          </div>
         </div>
       </header >
 
