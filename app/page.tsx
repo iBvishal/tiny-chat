@@ -6,6 +6,7 @@ import { ArrowUp, Loader2, Copy, Check, AlertCircle, RotateCw, Volume2, Download
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { streamGeminiResponse } from "@/lib/gemini"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { getChatHistory, getChatMessages, saveChat, generateId, ChatSession, Message, ChatMetadata } from "@/lib/storage"
 import { useSearchParams, useRouter } from "next/navigation"
 import ReactMarkdown from "react-markdown"
@@ -219,6 +220,7 @@ export default function Home() {
               <TooltipContent side="bottom">Download</TooltipContent>
             </Tooltip>
           )}
+          <ThemeToggle />
         </div>
       </header>
 
@@ -291,10 +293,7 @@ export default function Home() {
                 );
               })}
               {isLoading && messages[messages.length - 1]?.content === "" && (
-                <div className="flex items-center gap-2 text-muted-foreground animate-pulse ml-1 mt-1">
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  <span className="text-[10px] font-bold tracking-wider text-muted-foreground/50 uppercase">Thinking</span>
-                </div>
+                <TypewriterThinking />
               )}
             </div>
           )}
@@ -437,5 +436,50 @@ function CodeCopyButton({ text }: { text: string }) {
     >
       {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
     </Button>
+  )
+}
+function TypewriterThinking() {
+  const words = ["thinking...", "reasoning...", "processing...", "pondering...", "searching...", "analysing...", "responding..."]
+  const [index, setIndex] = React.useState(0)
+  const [subIndex, setSubIndex] = React.useState(0)
+  const [reverse, setReverse] = React.useState(false)
+  const [blink, setBlink] = React.useState(true)
+
+  // typewriter effect
+  React.useEffect(() => {
+    if (subIndex === words[index].length + 1 && !reverse) {
+      setTimeout(() => setReverse(true), 1500) // wait at full word
+      return
+    }
+
+    if (subIndex === 0 && reverse) {
+      setReverse(false)
+      setIndex((prev) => (prev + 1) % words.length)
+      return
+    }
+
+    const timeout = setTimeout(() => {
+      setSubIndex((prev) => prev + (reverse ? -1 : 1))
+    }, reverse ? 40 : 80)
+
+    return () => clearTimeout(timeout)
+  }, [subIndex, index, reverse])
+
+  // blinker
+  React.useEffect(() => {
+    const timeout2 = setTimeout(() => {
+      setBlink((prev) => !prev)
+    }, 500)
+    return () => clearTimeout(timeout2)
+  }, [blink])
+
+  return (
+    <div className="flex items-center gap-0.5 ml-2 mt-4 font-mono uppercase text-sm font-bold tracking-[0.1em] select-none">
+      <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 animate-gradient-x">
+        <span className="opacity-70">tiny-</span>
+        <span>{words[index].substring(0, subIndex)}</span>
+      </span>
+      <span className={`${blink ? "opacity-100" : "opacity-0"} ml-1 transition-opacity duration-100 inline-block w-1.5 h-4 bg-purple-500/50 align-middle mb-0.5`} />
+    </div>
   )
 }
