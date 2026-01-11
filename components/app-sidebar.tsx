@@ -37,7 +37,7 @@ export function AppSidebar() {
     const [filteredChats, setFilteredChats] = React.useState<ChatMetadata[]>([])
 
     // Delete Confirmation State
-    const [chatToDelete, setChatToDelete] = React.useState<string | null>(null)
+    const [chatToDelete, setChatToDelete] = React.useState<ChatMetadata | null>(null)
 
     const loadChats = React.useCallback(() => {
         setChats(getChatHistory())
@@ -69,16 +69,16 @@ export function AppSidebar() {
         return () => window.removeEventListener("chats_updated", loadChats)
     }, [loadChats])
 
-    const handleDeleteClick = (e: React.MouseEvent, id: string) => {
+    const handleDeleteClick = (e: React.MouseEvent, chat: ChatMetadata) => {
         e.preventDefault()
         e.stopPropagation()
-        setChatToDelete(id)
+        setChatToDelete(chat)
     }
 
     const confirmDelete = () => {
         if (chatToDelete) {
-            deleteChat(chatToDelete)
-            if (currentChatId === chatToDelete) {
+            deleteChat(chatToDelete.id)
+            if (currentChatId === chatToDelete.id) {
                 router.push("/")
             }
             setChatToDelete(null)
@@ -165,7 +165,7 @@ export function AppSidebar() {
                                             <Tooltip>
                                                 <TooltipTrigger asChild>
                                                     <button
-                                                        onClick={(e) => handleDeleteClick(e, chat.id)}
+                                                        onClick={(e) => handleDeleteClick(e, chat)}
                                                         className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover/item:opacity-100 p-1.5 hover:bg-black/5 dark:hover:bg-white/10 rounded-md transition-all text-muted-foreground/70 hover:text-destructive z-10"
                                                     >
                                                         <Trash2 className="h-3.5 w-3.5" />
@@ -278,7 +278,7 @@ export function AppSidebar() {
                         <div className="space-y-2">
                             <h3 className="font-semibold text-lg leading-none tracking-tight">Delete chat?</h3>
                             <p className="text-sm text-muted-foreground">
-                                This will permanently delete this conversation/
+                                This will permanently delete <strong>{chatToDelete.title}</strong>.
                             </p>
                         </div>
                         <div className="flex items-center justify-end gap-2 pt-2">
