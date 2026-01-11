@@ -88,18 +88,42 @@ export default function Home() {
     const updatedMessages = [...baseMsgs, assistantPlaceholder]
     setMessages(updatedMessages)
 
+    // Track when the animation started
+    const animationStartTime = Date.now()
+    const MIN_ANIMATION_DURATION = 3000 // 3 seconds
+
     try {
       let fullResponse = ""
       await streamGeminiResponse(promptValue, historyMessages, (chunk) => {
         fullResponse += chunk
-        setMessages((prev) => {
-          const streamMessages = [...prev]
-          streamMessages[streamMessages.length - 1] = {
-            role: "assistant",
-            content: fullResponse
-          }
-          return streamMessages
-        })
+        // Don't update messages during the minimum animation period
+        const elapsed = Date.now() - animationStartTime
+        if (elapsed >= MIN_ANIMATION_DURATION) {
+          setMessages((prev) => {
+            const streamMessages = [...prev]
+            streamMessages[streamMessages.length - 1] = {
+              role: "assistant",
+              content: fullResponse
+            }
+            return streamMessages
+          })
+        }
+      })
+
+      // Ensure minimum animation time has passed
+      const elapsed = Date.now() - animationStartTime
+      if (elapsed < MIN_ANIMATION_DURATION) {
+        await new Promise(resolve => setTimeout(resolve, MIN_ANIMATION_DURATION - elapsed))
+      }
+
+      // Now show the full response
+      setMessages((prev) => {
+        const streamMessages = [...prev]
+        streamMessages[streamMessages.length - 1] = {
+          role: "assistant",
+          content: fullResponse
+        }
+        return streamMessages
       })
 
       if (!isTemporary) {
@@ -120,7 +144,23 @@ export default function Home() {
       }
     } catch (err: any) {
       console.error("Failed to get response:", err)
-      setError(err?.message || "Sorry, I encountered an error. Please check your API key.")
+
+      // Parse and simplify error message
+      let errorMessage = "An error occurred. Please try again."
+
+      if (err?.message) {
+        if (err.message.includes("quota") || err.message.includes("429")) {
+          errorMessage = "API quota exceeded. Please check your billing or try again later."
+        } else if (err.message.includes("API key")) {
+          errorMessage = "Invalid API key. Please check your configuration."
+        } else if (err.message.includes("network") || err.message.includes("fetch")) {
+          errorMessage = "Network error. Please check your connection."
+        } else {
+          errorMessage = "Request failed. Please try again."
+        }
+      }
+
+      setError(errorMessage)
       // Remove the empty assistant placeholder on error
       setMessages((prev) => prev.filter(m => m.content !== ""))
     } finally {
@@ -306,9 +346,9 @@ export default function Home() {
           {error && (
             <div className="mb-4 p-3 bg-destructive/10 border border-destructive/30 rounded-xl text-destructive text-xs flex items-start gap-3 animate-in fade-in slide-in-from-bottom-2">
               <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <p className="font-semibold mb-0.5 text-destructive/90">Authentication Error</p>
-                <p className="opacity-80 leading-relaxed">{error}</p>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold mb-0.5 text-destructive/90">Error</p>
+                <p className="opacity-80 leading-relaxed break-words">{error}</p>
               </div>
             </div>
           )}
