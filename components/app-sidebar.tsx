@@ -51,7 +51,7 @@ export function AppSidebar() {
     return (
         <Sidebar variant="sidebar" collapsible="icon">
             <SidebarHeader className="px-2 py-4 flex flex-row items-center justify-between group-data-[collapsible=icon]:justify-center">
-                <SidebarTrigger className="h-10 w-10 text-foreground hover:bg-muted [&_svg]:size-5 ml-1.5 group-data-[collapsible=icon]:ml-0 group-data-[collapsible=icon]:mx-auto" />
+                <SidebarTrigger className="h-10 w-10 text-foreground hover:bg-muted [&_svg]:size-5 ml-1 group-data-[collapsible=icon]:ml-0 group-data-[collapsible=icon]:mx-auto" />
                 <div className="group-data-[collapsible=icon]:hidden">
                     <SidebarMenuButton size="default" tooltip="Search" className="h-10 w-10 p-0 flex items-center justify-center transition-colors hover:bg-muted">
                         <Search className="h-5 w-5" />
