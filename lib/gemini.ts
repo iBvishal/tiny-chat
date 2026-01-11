@@ -2,7 +2,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
 // Centralized model name for easy management
-const GEMINI_MODEL = "gemini-1.5-flash";
+const GEMINI_MODEL = "gemini-3-flash-preview";
 
 const SYSTEM_PROMPT = `You are Tiny Chat, a minimal and helpful AI assistant. 
 Your responses should be concise, accurate, and formatted using clean Markdown. 
@@ -22,9 +22,6 @@ export const getGeminiResponse = async (prompt: string, history: any[] = []) => 
             systemInstruction: SYSTEM_PROMPT
         });
 
-        // Convert our internal message format to Gemini's format
-        // Internal: { role: "user" | "assistant", content: string }
-        // Gemini: { role: "user" | "model", parts: [{ text: string }] }
         const geminiHistory = history.map(msg => ({
             role: msg.role === "assistant" ? "model" : "user",
             parts: [{ text: msg.content }],
@@ -43,7 +40,6 @@ export const getGeminiResponse = async (prompt: string, history: any[] = []) => 
     }
 };
 
-// For streaming responses (Phase 4)
 export const streamGeminiResponse = async (prompt: string, history: any[] = [], onChunk: (chunk: string) => void) => {
     try {
         const model = genAI.getGenerativeModel({
