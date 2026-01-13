@@ -9,6 +9,7 @@ export type ChatMetadata = {
     id: string
     title: string
     updatedAt: number
+    isPinned?: boolean
 }
 
 export type ChatSession = ChatMetadata & {
@@ -24,7 +25,13 @@ export const getChatHistory = (): ChatMetadata[] => {
     const stored = localStorage.getItem(METADATA_KEY)
     if (!stored) return []
     try {
-        return JSON.parse(stored)
+        const parsed = JSON.parse(stored) as ChatMetadata[]
+        // Sort: Pinned first, then by Recency (newest first)
+        return parsed.sort((a, b) => {
+            if (a.isPinned && !b.isPinned) return -1
+            if (!a.isPinned && b.isPinned) return 1
+            return b.updatedAt - a.updatedAt
+        })
     } catch (e) {
         return []
     }
@@ -78,6 +85,19 @@ export const deleteChat = (id: string) => {
     localStorage.removeItem(`${CONTENT_PREFIX}${id}`)
 
     window.dispatchEvent(new Event("chats_updated"))
+}
+
+export const updateChatMetadata = (id: string, updates: Partial<ChatMetadata>) => {
+    if (typeof window === "undefined") return
+
+    const history = getChatHistory()
+    const index = history.findIndex(c => c.id === id)
+
+    if (index >= 0) {
+        history[index] = { ...history[index], ...updates }
+        localStorage.setItem(METADATA_KEY, JSON.stringify(history))
+        window.dispatchEvent(new Event("chats_updated"))
+    }
 }
 
 export const generateId = () => Math.random().toString(36).substring(2, 11)

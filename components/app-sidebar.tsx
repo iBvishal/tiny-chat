@@ -8,6 +8,12 @@ import {
     Trash2,
     MessageSquare,
     X,
+    MoreHorizontal,
+    Pencil,
+    Pin,
+    PinOff,
+    Download,
+    Check,
 } from "lucide-react"
 
 import {
@@ -21,8 +27,9 @@ import {
     SidebarGroupContent,
     SidebarTrigger,
 } from "@/components/ui/sidebar"
+
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { getChatHistory, deleteChat, ChatMetadata } from "@/lib/storage"
+import { getChatHistory, deleteChat, ChatMetadata, updateChatMetadata, getChatMessages } from "@/lib/storage"
 import Link from "next/link"
 import { useSearchParams, useRouter } from "next/navigation"
 
@@ -38,6 +45,14 @@ export function AppSidebar() {
 
     // Delete Confirmation State
     const [chatToDelete, setChatToDelete] = React.useState<ChatMetadata | null>(null)
+
+    // Menu State
+    const [activeMenuId, setActiveMenuId] = React.useState<string | null>(null)
+    const [menuPosition, setMenuPosition] = React.useState<{ top: number, left: number } | null>(null)
+
+    // Rename State
+    const [renamingId, setRenamingId] = React.useState<string | null>(null)
+    const [renameName, setRenameName] = React.useState("")
 
     const loadChats = React.useCallback(() => {
         setChats(getChatHistory())
@@ -73,11 +88,71 @@ export function AppSidebar() {
         return () => window.removeEventListener("chats_updated", loadChats)
     }, [loadChats])
 
-    const handleDeleteClick = (e: React.MouseEvent, chat: ChatMetadata) => {
+    const handleDeleteClick = (chat: ChatMetadata) => {
+        setChatToDelete(chat)
+        setActiveMenuId(null)
+    }
+
+    const handleRenameClick = (chat: ChatMetadata) => {
+        setRenamingId(chat.id)
+        setRenameName(chat.title)
+        setActiveMenuId(null)
+    }
+
+    const handleRenameSubmit = (e: React.FormEvent) => {
+        e.preventDefault()
+        if (renamingId && renameName.trim()) {
+            updateChatMetadata(renamingId, { title: renameName.trim() })
+            setRenamingId(null)
+        }
+    }
+
+    const handlePinClick = (chat: ChatMetadata) => {
+        updateChatMetadata(chat.id, { isPinned: !chat.isPinned })
+        setActiveMenuId(null)
+    }
+
+    const handleDownloadClick = (chat: ChatMetadata) => {
+        const messages = getChatMessages(chat.id)
+        if (messages.length === 0) return
+
+        const chatContent = messages
+            .map(msg => `${msg.role.toUpperCase()}:\n${msg.content}\n\n---\n\n`)
+            .join("")
+
+        const blob = new Blob([chatContent], { type: "text/plain" })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement("a")
+        a.href = url
+        const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19)
+        a.download = `tiny-chat-${chat.title}-${timestamp}.txt`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+        setActiveMenuId(null)
+    }
+
+    const toggleMenu = (e: React.MouseEvent, chat: ChatMetadata) => {
         e.preventDefault()
         e.stopPropagation()
-        setChatToDelete(chat)
+
+        if (activeMenuId === chat.id) {
+            setActiveMenuId(null)
+            return
+        }
+
+        const rect = e.currentTarget.getBoundingClientRect()
+        setMenuPosition({ top: rect.bottom + 8, left: rect.left })
+        setActiveMenuId(chat.id)
     }
+
+    // Close menu on click outside
+    React.useEffect(() => {
+        const h = () => setActiveMenuId(null)
+        if (activeMenuId) window.addEventListener('click', h)
+        return () => window.removeEventListener('click', h)
+    }, [activeMenuId])
 
     const confirmDelete = () => {
         if (chatToDelete) {
@@ -145,29 +220,49 @@ export function AppSidebar() {
                                 </SidebarMenuItem>
                                 {chats.map((chat) => (
                                     <SidebarMenuItem key={chat.id} className="group/item">
-                                        <Link href={`/?id=${chat.id}`} className="relative block">
-                                            <SidebarMenuButton
-                                                className="text-sm font-normal py-2 h-8 truncate transition-all duration-200 hover:bg-black/5 dark:hover:bg-white/5 group-data-[collapsible=icon]:hidden px-2 pr-8 data-[active=true]:bg-black/5 dark:data-[active=true]:bg-white/10"
-                                                isActive={currentChatId === chat.id}
-                                                tooltip={chat.title}
-                                            >
-                                                <span className="truncate">{chat.title}</span>
-                                            </SidebarMenuButton>
+                                        <Link href={`/?id=${chat.id}`} className="relative block group/link">
+                                            {renamingId === chat.id ? (
+                                                <form
+                                                    onSubmit={handleRenameSubmit}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    className="px-2 py-1 absolute inset-0 z-20 flex items-center bg-background"
+                                                >
+                                                    <input
+                                                        autoFocus
+                                                        value={renameName}
+                                                        onChange={(e) => setRenameName(e.target.value)}
+                                                        onBlur={() => setRenamingId(null)}
+                                                        className="w-full h-8 text-sm bg-muted/50 border rounded px-2 outline-none focus:ring-1 focus:ring-ring"
+                                                    />
+                                                </form>
+                                            ) : (
+                                                <SidebarMenuButton
+                                                    className="text-sm font-normal py-2 h-8 truncate transition-all duration-200 hover:bg-black/5 dark:hover:bg-white/5 group-data-[collapsible=icon]:hidden px-2 pr-8 data-[active=true]:bg-black/5 dark:data-[active=true]:bg-white/10"
+                                                    isActive={currentChatId === chat.id}
+                                                    tooltip={chat.title}
+                                                >
+                                                    <span className="truncate">{chat.title}</span>
+                                                </SidebarMenuButton>
+                                            )}
 
-                                            {/* Gradient fade for delete button area */}
-                                            <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-sidebar via-sidebar/80 to-transparent opacity-0 group-hover/item:opacity-100 transition-opacity pointer-events-none rounded-r-md" />
 
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <button
-                                                        onClick={(e) => handleDeleteClick(e, chat)}
-                                                        className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover/item:opacity-100 p-1.5 hover:bg-black/5 dark:hover:bg-white/10 rounded-md transition-all text-muted-foreground/70 hover:text-destructive z-10"
-                                                    >
-                                                        <Trash2 className="h-3.5 w-3.5" />
-                                                    </button>
-                                                </TooltipTrigger>
-                                                <TooltipContent side="right">Delete chat</TooltipContent>
-                                            </Tooltip>
+
+                                            <div className="absolute right-2 top-1/2 -translate-y-1/2 z-10 flex items-center justify-end">
+                                                {/* Pinned Icon (Visible when pinned and menu not active, hidden on group hover) */}
+                                                {chat.isPinned && activeMenuId !== chat.id && (
+                                                    <div className="group-hover/link:hidden text-muted-foreground/70">
+                                                        <Pin className="h-3.5 w-3.5 rotate-45" />
+                                                    </div>
+                                                )}
+
+                                                {/* Menu Button (Visible on group hover or when menu active) */}
+                                                <button
+                                                    onClick={(e) => toggleMenu(e, chat)}
+                                                    className={`p-0 hover:text-foreground transition-colors text-muted-foreground/70 ${activeMenuId === chat.id ? "opacity-100 text-foreground block" : "hidden group-hover/link:block"}`}
+                                                >
+                                                    <MoreHorizontal className="h-4 w-4" />
+                                                </button>
+                                            </div>
                                         </Link>
                                     </SidebarMenuItem>
                                 ))}
@@ -176,6 +271,61 @@ export function AppSidebar() {
                     </SidebarGroup>
                 )}
             </SidebarContent>
+
+            {/* Context Menu Portal (Fixed) */}
+            {activeMenuId && menuPosition && (
+                <div
+                    className="fixed z-[100] min-w-[160px] bg-popover text-popover-foreground border rounded-lg shadow-lg p-1 animate-in fade-in-0 zoom-in-95 duration-100"
+                    style={{
+                        top: Math.min(menuPosition.top, window.innerHeight - 250), // Prevent going off bottom
+                        left: Math.min(menuPosition.left, window.innerWidth - 170), // Prevent going off right
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    {chats.find(c => c.id === activeMenuId) && (
+                        <>
+                            <button
+                                onClick={() => handleRenameClick(chats.find(c => c.id === activeMenuId)!)}
+                                className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md hover:bg-muted transition-colors text-left"
+                            >
+                                <Pencil className="h-4 w-4 text-muted-foreground" />
+                                <span>Rename</span>
+                            </button>
+                            <button
+                                onClick={() => handlePinClick(chats.find(c => c.id === activeMenuId)!)}
+                                className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md hover:bg-muted transition-colors text-left"
+                            >
+                                {chats.find(c => c.id === activeMenuId)?.isPinned ? (
+                                    <>
+                                        <PinOff className="h-4 w-4 text-muted-foreground" />
+                                        <span>Unpin</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Pin className="h-4 w-4 text-muted-foreground" />
+                                        <span>Pin chat</span>
+                                    </>
+                                )}
+                            </button>
+                            <button
+                                onClick={() => handleDownloadClick(chats.find(c => c.id === activeMenuId)!)}
+                                className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md hover:bg-muted transition-colors text-left"
+                            >
+                                <Download className="h-4 w-4 text-muted-foreground" />
+                                <span>Download</span>
+                            </button>
+                            <div className="h-px bg-border my-1" />
+                            <button
+                                onClick={() => handleDeleteClick(chats.find(c => c.id === activeMenuId)!)}
+                                className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md hover:bg-destructive/10 text-destructive hover:text-destructive transition-colors text-left"
+                            >
+                                <Trash2 className="h-4 w-4" />
+                                <span>Delete</span>
+                            </button>
+                        </>
+                    )}
+                </div>
+            )}
 
             {/* Search Modal */}
             {isSearchOpen && (
