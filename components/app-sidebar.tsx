@@ -25,8 +25,17 @@ import {
     SidebarMenuItem,
     SidebarGroup,
     SidebarGroupContent,
+
     SidebarTrigger,
 } from "@/components/ui/sidebar"
+
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { getChatHistory, deleteChat, ChatMetadata, updateChatMetadata, getChatMessages } from "@/lib/storage"
@@ -34,6 +43,13 @@ import Link from "next/link"
 import { useSearchParams, useRouter } from "next/navigation"
 
 export function AppSidebar() {
+    return (
+        <AppSidebarContent />
+    )
+}
+
+function AppSidebarContent() {
+
     const [chats, setChats] = React.useState<ChatMetadata[]>([])
     const router = useRouter()
     const searchParams = useSearchParams()
@@ -48,7 +64,6 @@ export function AppSidebar() {
 
     // Menu State
     const [activeMenuId, setActiveMenuId] = React.useState<string | null>(null)
-    const [menuPosition, setMenuPosition] = React.useState<{ top: number, left: number } | null>(null)
 
     // Rename State
     const [renamingId, setRenamingId] = React.useState<string | null>(null)
@@ -133,26 +148,8 @@ export function AppSidebar() {
         setActiveMenuId(null)
     }
 
-    const toggleMenu = (e: React.MouseEvent, chat: ChatMetadata) => {
-        e.preventDefault()
-        e.stopPropagation()
+    // Close menu on click outside (handled by DropdownMenu now)
 
-        if (activeMenuId === chat.id) {
-            setActiveMenuId(null)
-            return
-        }
-
-        const rect = e.currentTarget.getBoundingClientRect()
-        setMenuPosition({ top: rect.bottom + 8, left: rect.left })
-        setActiveMenuId(chat.id)
-    }
-
-    // Close menu on click outside
-    React.useEffect(() => {
-        const h = () => setActiveMenuId(null)
-        if (activeMenuId) window.addEventListener('click', h)
-        return () => window.removeEventListener('click', h)
-    }, [activeMenuId])
 
     const confirmDelete = () => {
         if (chatToDelete) {
@@ -168,42 +165,28 @@ export function AppSidebar() {
         <Sidebar variant="sidebar" collapsible="icon">
             <SidebarHeader className="px-2 py-4 flex flex-row items-center justify-between group-data-[collapsible=icon]:justify-center">
                 <SidebarTrigger className="h-10 w-10 text-foreground hover:bg-muted [&_svg]:size-5 ml-1 group-data-[collapsible=icon]:ml-0 group-data-[collapsible=icon]:mx-auto" />
-                <div className="group-data-[collapsible=icon]:hidden">
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <SidebarMenuButton
-                                size="default"
-                                className="h-10 w-10 p-0 flex items-center justify-center transition-colors hover:bg-muted"
-                                onClick={() => setIsSearchOpen(true)}
-                            >
-                                <Search className="h-5 w-5" />
-                            </SidebarMenuButton>
-                        </TooltipTrigger>
-                        <TooltipContent side="right">Search (Cmd+K)</TooltipContent>
-                    </Tooltip>
-                </div>
             </SidebarHeader>
 
             <SidebarContent className="px-2 mt-2">
                 <SidebarGroup className="p-0">
                     <SidebarGroupContent>
                         <SidebarMenu>
-                            <SidebarMenuItem className="flex items-center gap-2">
-                                <Link href="/" className="flex-1">
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <SidebarMenuButton
-                                                className="w-full bg-transparent hover:bg-black/5 dark:hover:bg-white/5 h-10 px-4 rounded-xl transition-all duration-200 font-normal group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:text-foreground"
-                                                isActive={!currentChatId}
-                                            >
-                                                <SquarePen className="h-5 w-5" />
-                                                <span className="group-data-[collapsible=icon]:hidden">New chat</span>
-                                            </SidebarMenuButton>
-                                        </TooltipTrigger>
-                                        <TooltipContent side="right">New chat (Shift+Cmd+O)</TooltipContent>
-                                    </Tooltip>
-                                </Link>
-
+                            <SidebarMenuItem>
+                                <SidebarActionButton
+                                    onClick={() => router.push("/")}
+                                    icon={SquarePen}
+                                    label="New chat"
+                                    tooltip="New chat (Shift+Cmd+O)"
+                                    isActive={!currentChatId}
+                                />
+                            </SidebarMenuItem>
+                            <SidebarMenuItem>
+                                <SidebarActionButton
+                                    onClick={() => setIsSearchOpen(true)}
+                                    icon={Search}
+                                    label="Search chats"
+                                    tooltip="Search (Cmd+K)"
+                                />
                             </SidebarMenuItem>
                         </SidebarMenu>
                     </SidebarGroupContent>
@@ -247,21 +230,73 @@ export function AppSidebar() {
 
 
 
-                                            <div className="absolute right-2 top-1/2 -translate-y-1/2 z-10 flex items-center justify-end">
+                                            <div className="absolute right-2 top-1/2 -translate-y-1/2 z-10 grid place-items-center">
                                                 {/* Pinned Icon (Visible when pinned and menu not active, hidden on group hover) */}
                                                 {chat.isPinned && activeMenuId !== chat.id && (
-                                                    <div className="group-hover/link:hidden text-muted-foreground/70">
+                                                    <div className="group-hover/link:hidden text-muted-foreground/70 col-start-1 row-start-1">
                                                         <Pin className="h-3.5 w-3.5 rotate-45" />
                                                     </div>
                                                 )}
 
                                                 {/* Menu Button (Visible on group hover or when menu active) */}
-                                                <button
-                                                    onClick={(e) => toggleMenu(e, chat)}
-                                                    className={`p-0 hover:text-foreground transition-colors text-muted-foreground/70 ${activeMenuId === chat.id ? "opacity-100 text-foreground block" : "hidden group-hover/link:block"}`}
-                                                >
-                                                    <MoreHorizontal className="h-4 w-4" />
-                                                </button>
+                                                <DropdownMenu onOpenChange={(open) => setActiveMenuId(open ? chat.id : null)}>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <button
+                                                            className={`col-start-1 row-start-1 p-0 hover:text-foreground transition-colors text-muted-foreground/70 outline-none ${activeMenuId === chat.id ? "opacity-100 text-foreground pointer-events-auto" : "opacity-0 pointer-events-none group-hover/link:opacity-100 group-hover/link:pointer-events-auto"}`}
+                                                        >
+                                                            <MoreHorizontal className="h-4 w-4" />
+                                                        </button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="start" className="w-48">
+                                                        <DropdownMenuItem
+                                                            onClick={(e) => {
+                                                                e.stopPropagation()
+                                                                handleRenameClick(chat)
+                                                            }}
+                                                        >
+                                                            <Pencil className="h-4 w-4 mr-2" />
+                                                            <span>Rename</span>
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem
+                                                            onClick={(e) => {
+                                                                e.stopPropagation()
+                                                                handlePinClick(chat)
+                                                            }}
+                                                        >
+                                                            {chat.isPinned ? (
+                                                                <>
+                                                                    <PinOff className="h-4 w-4 mr-2" />
+                                                                    <span>Unpin</span>
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <Pin className="h-4 w-4 mr-2" />
+                                                                    <span>Pin chat</span>
+                                                                </>
+                                                            )}
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem
+                                                            onClick={(e) => {
+                                                                e.stopPropagation()
+                                                                handleDownloadClick(chat)
+                                                            }}
+                                                        >
+                                                            <Download className="h-4 w-4 mr-2" />
+                                                            <span>Download</span>
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuItem
+                                                            onClick={(e) => {
+                                                                e.stopPropagation()
+                                                                handleDeleteClick(chat)
+                                                            }}
+                                                            className="text-destructive focus:text-destructive"
+                                                        >
+                                                            <Trash2 className="h-4 w-4 mr-2" />
+                                                            <span>Delete</span>
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
                                             </div>
                                         </Link>
                                     </SidebarMenuItem>
@@ -272,60 +307,7 @@ export function AppSidebar() {
                 )}
             </SidebarContent>
 
-            {/* Context Menu Portal (Fixed) */}
-            {activeMenuId && menuPosition && (
-                <div
-                    className="fixed z-[100] min-w-[160px] bg-popover text-popover-foreground border rounded-lg shadow-lg p-1 animate-in fade-in-0 zoom-in-95 duration-100"
-                    style={{
-                        top: Math.min(menuPosition.top, window.innerHeight - 250), // Prevent going off bottom
-                        left: Math.min(menuPosition.left, window.innerWidth - 170), // Prevent going off right
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                >
-                    {chats.find(c => c.id === activeMenuId) && (
-                        <>
-                            <button
-                                onClick={() => handleRenameClick(chats.find(c => c.id === activeMenuId)!)}
-                                className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md hover:bg-muted transition-colors text-left"
-                            >
-                                <Pencil className="h-4 w-4 text-muted-foreground" />
-                                <span>Rename</span>
-                            </button>
-                            <button
-                                onClick={() => handlePinClick(chats.find(c => c.id === activeMenuId)!)}
-                                className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md hover:bg-muted transition-colors text-left"
-                            >
-                                {chats.find(c => c.id === activeMenuId)?.isPinned ? (
-                                    <>
-                                        <PinOff className="h-4 w-4 text-muted-foreground" />
-                                        <span>Unpin</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <Pin className="h-4 w-4 text-muted-foreground" />
-                                        <span>Pin chat</span>
-                                    </>
-                                )}
-                            </button>
-                            <button
-                                onClick={() => handleDownloadClick(chats.find(c => c.id === activeMenuId)!)}
-                                className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md hover:bg-muted transition-colors text-left"
-                            >
-                                <Download className="h-4 w-4 text-muted-foreground" />
-                                <span>Download</span>
-                            </button>
-                            <div className="h-px bg-border my-1" />
-                            <button
-                                onClick={() => handleDeleteClick(chats.find(c => c.id === activeMenuId)!)}
-                                className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md hover:bg-destructive/10 text-destructive hover:text-destructive transition-colors text-left"
-                            >
-                                <Trash2 className="h-4 w-4" />
-                                <span>Delete</span>
-                            </button>
-                        </>
-                    )}
-                </div>
-            )}
+            {/* Context Menu Portal (Removed - using DropdownMenu) */}
 
             {/* Search Modal */}
             {isSearchOpen && (
@@ -444,5 +426,28 @@ export function AppSidebar() {
                 </div>
             )}
         </Sidebar>
+    )
+}
+
+interface SidebarActionButtonProps extends React.ComponentProps<typeof SidebarMenuButton> {
+    icon: React.ElementType
+    label: string
+    tooltip?: string
+}
+
+function SidebarActionButton({ icon: Icon, label, tooltip, className, ...props }: SidebarActionButtonProps) {
+    return (
+        <Tooltip>
+            <TooltipTrigger asChild>
+                <SidebarMenuButton
+                    className="w-full bg-transparent hover:bg-black/5 dark:hover:bg-white/5 h-10 px-4 rounded-xl transition-all duration-200 font-normal group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:text-foreground"
+                    {...props}
+                >
+                    <Icon className="h-5 w-5" />
+                    <span className="group-data-[collapsible=icon]:hidden">{label}</span>
+                </SidebarMenuButton>
+            </TooltipTrigger>
+            {tooltip && <TooltipContent side="right">{tooltip}</TooltipContent>}
+        </Tooltip>
     )
 }

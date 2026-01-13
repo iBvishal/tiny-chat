@@ -181,9 +181,22 @@
     @apply leading-relaxed mb-4;
   }
 
-  .prose ul,
+  .prose ul {
+    list-style-type: disc;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    padding-left: 1.5rem;
+  }
+
   .prose ol {
-    @apply my-4 pl-6;
+    list-style-type: decimal;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    padding-left: 1.5rem;
+  }
+
+  .prose li::marker {
+    color: var(--foreground);
   }
 
   .prose li {

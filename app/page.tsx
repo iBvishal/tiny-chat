@@ -201,6 +201,8 @@ export default function Home() {
     const baseMessagesWithUser = messages.slice(0, lastUserMessageIndex + 1)
 
     // We already have the user message in the state, just trigger Gemini for it
+    // Explicitly set messages to remove the old response first
+    setMessages(baseMessagesWithUser)
     handleSubmit(undefined, prompt, historyBeforeUser, baseMessagesWithUser)
   }
 
@@ -296,11 +298,7 @@ export default function Home() {
             </TooltipTrigger>
             <TooltipContent side="bottom">Temporary chat</TooltipContent>
           </Tooltip>
-          {isTemporary && (
-            <div className="px-1.5 py-0.5 bg-amber-400/10 text-amber-600 dark:text-amber-400 text-[10px] font-bold uppercase tracking-tighter rounded border border-amber-400/20 shrink-0">
-              Temporary
-            </div>
-          )}
+
           <div className="md:hidden">
             <ThemeToggle />
           </div>
