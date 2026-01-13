@@ -225,14 +225,14 @@ export function AppSidebar() {
                                                 <form
                                                     onSubmit={handleRenameSubmit}
                                                     onClick={(e) => e.stopPropagation()}
-                                                    className="px-2 py-1 absolute inset-0 z-20 flex items-center bg-background"
+                                                    className="flex-1 mr-8"
                                                 >
                                                     <input
                                                         autoFocus
                                                         value={renameName}
                                                         onChange={(e) => setRenameName(e.target.value)}
                                                         onBlur={() => setRenamingId(null)}
-                                                        className="w-full h-8 text-sm bg-muted/50 border rounded px-2 outline-none focus:ring-1 focus:ring-ring"
+                                                        className="w-full h-8 text-sm bg-transparent border border-input rounded px-2 outline-none focus:ring-1 focus:ring-ring text-foreground"
                                                     />
                                                 </form>
                                             ) : (
