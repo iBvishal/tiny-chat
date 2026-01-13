@@ -51,17 +51,21 @@ export function AppSidebar() {
         }
     }, [searchQuery, chats])
 
-    // Handle cmd+k to open search
+    // Handle keyboard shortcuts
     React.useEffect(() => {
         const down = (e: KeyboardEvent) => {
             if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
                 e.preventDefault()
                 setIsSearchOpen((open) => !open)
             }
+            if (e.key === "o" && (e.metaKey || e.ctrlKey) && e.shiftKey) {
+                e.preventDefault()
+                router.push("/")
+            }
         }
         document.addEventListener("keydown", down)
         return () => document.removeEventListener("keydown", down)
-    }, [])
+    }, [router])
 
     React.useEffect(() => {
         loadChats()
@@ -111,14 +115,18 @@ export function AppSidebar() {
                         <SidebarMenu>
                             <SidebarMenuItem className="flex items-center gap-2">
                                 <Link href="/" className="flex-1">
-                                    <SidebarMenuButton
-                                        className="w-full bg-muted/40 hover:bg-muted/60 h-10 px-4 rounded-xl transition-all duration-200 font-medium border border-transparent group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:text-foreground hover:scale-[1.02] active:scale-[0.98]"
-                                        tooltip="New chat"
-                                        isActive={!currentChatId}
-                                    >
-                                        <SquarePen className="h-5 w-5" />
-                                        <span className="group-data-[collapsible=icon]:hidden">New chat</span>
-                                    </SidebarMenuButton>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <SidebarMenuButton
+                                                className="w-full bg-transparent hover:bg-black/5 dark:hover:bg-white/5 h-10 px-4 rounded-xl transition-all duration-200 font-normal group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:text-foreground"
+                                                isActive={!currentChatId}
+                                            >
+                                                <SquarePen className="h-5 w-5" />
+                                                <span className="group-data-[collapsible=icon]:hidden">New chat</span>
+                                            </SidebarMenuButton>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="right">New chat (Shift+Cmd+O)</TooltipContent>
+                                    </Tooltip>
                                 </Link>
 
                             </SidebarMenuItem>
