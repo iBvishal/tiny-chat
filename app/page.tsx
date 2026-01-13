@@ -281,11 +281,17 @@ export default function Home() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 transition-colors hover:bg-muted"
-                onClick={() => router.push("/?temp=true")}
+                className={`h-8 w-8 transition-colors hover:bg-muted ${isTemporary ? "text-amber-600 dark:text-amber-400 bg-amber-400/10 hover:bg-amber-400/20" : ""}`}
+                onClick={() => {
+                  if (isTemporary) {
+                    router.push("/")
+                  } else {
+                    router.push("/?temp=true")
+                  }
+                }}
               >
                 <MessageSquareDashed className="h-4 w-4" />
-                <span className="sr-only">Temporary chat</span>
+                <span className="sr-only">Toggle temporary chat</span>
               </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom">Temporary chat</TooltipContent>
