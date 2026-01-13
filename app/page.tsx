@@ -537,7 +537,7 @@ function CodeCopyButton({ text }: { text: string }) {
 }
 function TypewriterThinking({ done = false }: { done?: boolean }) {
   const words = ["thinking...", "reasoning...", "processing...", "pondering...", "searching...", "analysing...", "responding..."]
-  const [index, setIndex] = React.useState(0)
+  const [index, setIndex] = React.useState(() => Math.floor(Math.random() * words.length))
   const [subIndex, setSubIndex] = React.useState(0)
   const [reverse, setReverse] = React.useState(false)
   const [blink, setBlink] = React.useState(true)
@@ -553,7 +553,13 @@ function TypewriterThinking({ done = false }: { done?: boolean }) {
 
     if (subIndex === 0 && reverse) {
       setReverse(false)
-      setIndex((prev) => (prev + 1) % words.length)
+      setIndex((prev) => {
+        let next
+        do {
+          next = Math.floor(Math.random() * words.length)
+        } while (next === prev && words.length > 1)
+        return next
+      })
       return
     }
 
