@@ -237,8 +237,8 @@ export default function HomePageContent() {
           {/* Header */}
           <header className="relative flex h-14 shrink-0 items-center justify-between gap-2 border-b px-4">
             <div className="flex items-center gap-2 text-sm text-muted-foreground overflow-hidden">
-              <SidebarTrigger className="-ml-1" />
-              <Separator orientation="vertical" className="mr-2 h-4" />
+              <SidebarTrigger className="-ml-1 md:hidden" />
+              <Separator orientation="vertical" className="mr-2 h-4 md:hidden" />
               <span className="font-medium text-foreground truncate shrink-0">tiny-chat</span>
               {sessionMetadata && (
                 <>
