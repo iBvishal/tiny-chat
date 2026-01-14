@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import type { Message } from "@/lib/storage";
 
 const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
 
@@ -23,7 +24,7 @@ if (!apiKey) {
 
 const genAI = new GoogleGenerativeAI(apiKey || "");
 
-export const getGeminiResponse = async (prompt: string, history: any[] = [], modelName: string = DEFAULT_MODEL) => {
+export const getGeminiResponse = async (prompt: string, history: Message[] = [], modelName: string = DEFAULT_MODEL) => {
     try {
         const model = genAI.getGenerativeModel({
             model: modelName,
@@ -48,7 +49,7 @@ export const getGeminiResponse = async (prompt: string, history: any[] = [], mod
     }
 };
 
-export const streamGeminiResponse = async (prompt: string, history: any[] = [], onChunk: (chunk: string) => void, modelName: string = DEFAULT_MODEL) => {
+export const streamGeminiResponse = async (prompt: string, history: Message[] = [], onChunk: (chunk: string) => void, modelName: string = DEFAULT_MODEL) => {
     try {
         const model = genAI.getGenerativeModel({
             model: modelName,

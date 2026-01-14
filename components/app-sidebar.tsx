@@ -4,7 +4,6 @@ import * as React from "react"
 import {
     Search,
     SquarePen,
-    MessageSquareDashed,
     Trash2,
     MessageSquare,
     X,
@@ -13,7 +12,6 @@ import {
     Pin,
     PinOff,
     Download,
-    Check,
 } from "lucide-react"
 
 import {
@@ -364,7 +362,7 @@ function AppSidebarContent() {
 
                             {filteredChats.length === 0 && searchQuery && (
                                 <div className="px-4 py-8 text-center text-muted-foreground text-sm">
-                                    No results found for "{searchQuery}"
+                                    {`No results found for "${searchQuery}"`}
                                 </div>
                             )}
 
@@ -435,7 +433,7 @@ interface SidebarActionButtonProps extends React.ComponentProps<typeof SidebarMe
     tooltip?: string
 }
 
-function SidebarActionButton({ icon: Icon, label, tooltip, className, ...props }: SidebarActionButtonProps) {
+function SidebarActionButton({ icon: Icon, label, tooltip, ...props }: SidebarActionButtonProps) {
     return (
         <Tooltip>
             <TooltipTrigger asChild>

@@ -32,7 +32,8 @@ export const getChatHistory = (): ChatMetadata[] => {
             if (!a.isPinned && b.isPinned) return 1
             return b.updatedAt - a.updatedAt
         })
-    } catch (e) {
+    } catch (error) {
+        console.error("Failed to parse chat history:", error)
         return []
     }
 }
@@ -44,7 +45,8 @@ export const getChatMessages = (id: string): Message[] => {
     if (!stored) return []
     try {
         return JSON.parse(stored)
-    } catch (e) {
+    } catch (error) {
+        console.error("Failed to parse chat messages:", error)
         return []
     }
 }

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Separator } from "@/components/ui/separator";
-import { ArrowUp, Loader2, Copy, Check, AlertCircle, RotateCw, Volume2, Download, ChevronDown, ChevronUp, Edit, MessageSquareDashed } from "lucide-react";
+import { ArrowUp, Loader2, Copy, Check, AlertCircle, RotateCw, Volume2, Download, Edit, MessageSquareDashed } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { streamGeminiResponse, DEFAULT_MODEL } from "@/lib/gemini";
@@ -157,13 +157,13 @@ export default function HomePageContent() {
           window.history.pushState(null, "", `/?id=${currentId}`);
         }
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Failed to get response:", err);
 
       // Parse and simplify error message
       let errorMessage = "An error occurred. Please try again.";
 
-      if (err?.message) {
+      if (err instanceof Error) {
         if (err.message.includes("quota") || err.message.includes("429")) {
           errorMessage = "API quota exceeded. Please check your billing or try again later.";
         } else if (err.message.includes("API key")) {
@@ -343,7 +343,11 @@ export default function HomePageContent() {
                               <ReactMarkdown
                                 remarkPlugins={[remarkGfm]}
                                 components={{
-                                  code({ node, inline, className, children, ...props }: any) {
+                                  code({ inline, className, children, ...props }: {
+                                    inline?: boolean;
+                                    className?: string;
+                                    children?: React.ReactNode;
+                                  }) {
                                     const match = /language-(\w+)/.exec(className || '');
                                     return !inline && match ? (
                                       <div className="relative group/code">
@@ -455,7 +459,7 @@ export default function HomePageContent() {
 }
 
 function TypewriterTitle() {
-  const words = ["thinks", "dreams", "chat", "ideas", "musings", "thoughts"];
+  const words = React.useMemo(() => ["thinks", "dreams", "chat", "ideas", "musings", "thoughts"], []);
   const [index, setIndex] = React.useState(() => Math.floor(Math.random() * words.length));
   const [subIndex, setSubIndex] = React.useState(0);
   const [reverse, setReverse] = React.useState(false);
@@ -485,7 +489,7 @@ function TypewriterTitle() {
     }, reverse ? 100 : 200);
 
     return () => clearTimeout(timeout);
-  }, [subIndex, index, reverse]);
+  }, [subIndex, index, reverse, words]);
 
   // blinker
   React.useEffect(() => {
@@ -604,7 +608,7 @@ function CodeCopyButton({ text }: { text: string }) {
 }
 
 function TypewriterThinking({ done = false }: { done?: boolean }) {
-  const words = ["thinking...", "reasoning...", "processing...", "pondering...", "searching...", "analysing...", "responding..."];
+  const words = React.useMemo(() => ["thinking...", "reasoning...", "processing...", "pondering...", "searching...", "analysing...", "responding..."], []);
   const [index, setIndex] = React.useState(() => Math.floor(Math.random() * words.length));
   const [subIndex, setSubIndex] = React.useState(0);
   const [reverse, setReverse] = React.useState(false);
@@ -636,7 +640,7 @@ function TypewriterThinking({ done = false }: { done?: boolean }) {
     }, reverse ? 40 : 80);
 
     return () => clearTimeout(timeout);
-  }, [subIndex, index, reverse, done]);
+  }, [subIndex, index, reverse, done, words]);
 
   // blinker
   React.useEffect(() => {
@@ -716,7 +720,11 @@ function UserMessage({ content, onEdit }: { content: string, onEdit: (text: stri
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             components={{
-              code({ node, inline, className, children, ...props }: any) {
+              code({ inline, className, children, ...props }: {
+                inline?: boolean;
+                className?: string;
+                children?: React.ReactNode;
+              }) {
                 const match = /language-(\w+)/.exec(className || '');
                 return !inline && match ? (
                   <div className="relative group/code">
