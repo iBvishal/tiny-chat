@@ -32,10 +32,8 @@ export const UserMessage = React.memo(function UserMessage({
     };
 
     return (
-        <div className="flex flex-col gap-2 group">
-            <div className="flex items-start justify-between gap-4">
-                <MarkdownContent content={displayContent} />
-
+        <div className="flex flex-col gap-2 group items-end">
+            <div className="flex items-center justify-end gap-2 w-full">
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                     <Button
                         variant="ghost"
@@ -53,6 +51,10 @@ export const UserMessage = React.memo(function UserMessage({
                     >
                         <Edit className="h-3.5 w-3.5" />
                     </Button>
+                </div>
+
+                <div className="bg-muted/60 px-4 py-2 rounded-2xl rounded-tr-sm max-w-[85%] sm:max-w-[75%]">
+                    <MarkdownContent content={displayContent} />
                 </div>
             </div>
 
