@@ -1,20 +1,23 @@
 "use client"
 
-import type { Message, ChatMetadata, ChatSession } from "./types"
+import type { Message, ChatMetadata } from "./types"
 import { STORAGE_KEYS } from "./constants"
 
 const METADATA_KEY = STORAGE_KEYS.METADATA
 const CONTENT_PREFIX = STORAGE_KEYS.CONTENT_PREFIX
 
 
-// Get just the lightweight list for the sidebar
+/**
+ * Retrieves the list of all chat sessions (metadata only).
+ * Sorted by pinned status and then by recency.
+ * @returns {ChatMetadata[]} Array of chat metadata
+ */
 export const getChatHistory = (): ChatMetadata[] => {
     if (typeof window === "undefined") return []
     const stored = localStorage.getItem(METADATA_KEY)
     if (!stored) return []
     try {
         const parsed = JSON.parse(stored) as ChatMetadata[]
-        // Sort: Pinned first, then by Recency (newest first)
         return parsed.sort((a, b) => {
             if (a.isPinned && !b.isPinned) return -1
             if (!a.isPinned && b.isPinned) return 1
@@ -26,7 +29,11 @@ export const getChatHistory = (): ChatMetadata[] => {
     }
 }
 
-// Get full messages for a specific chat only when needed
+/**
+ * Retrieves the message content for a specific chat ID.
+ * @param {string} id - The chat session ID
+ * @returns {Message[]} Array of messages
+ */
 export const getChatMessages = (id: string): Message[] => {
     if (typeof window === "undefined") return []
     const stored = localStorage.getItem(`${CONTENT_PREFIX}${id}`)
@@ -39,55 +46,65 @@ export const getChatMessages = (id: string): Message[] => {
     }
 }
 
-export const saveChat = (chat: ChatSession) => {
+/**
+ * Saves or updates a chat session (both metadata and messages).
+ * @param {string} id - The chat ID
+ * @param {string} title - The chat title
+ * @param {Message[]} messages - The message history
+ * @param {boolean} [isPinned] - Optional pinned status
+ */
+export const saveChat = (id: string, title: string, messages: Message[], isPinned?: boolean) => {
     if (typeof window === "undefined") return
 
-    // 1. Update Metadata List (Lightweight)
     const history = getChatHistory()
-    const index = history.findIndex(c => c.id === chat.id)
+    const existingIndex = history.findIndex(h => h.id === id)
+    const updatedAt = Date.now()
 
     const metadata: ChatMetadata = {
-        id: chat.id,
-        title: chat.title,
-        updatedAt: Date.now()
+        id,
+        title,
+        updatedAt,
+        isPinned: existingIndex >= 0 ? history[existingIndex].isPinned : isPinned
     }
 
-    if (index >= 0) {
-        history[index] = metadata
+    if (existingIndex >= 0) {
+        history[existingIndex] = metadata
     } else {
         history.unshift(metadata)
     }
 
     localStorage.setItem(METADATA_KEY, JSON.stringify(history))
-
-    // 2. Update Content (Heavier, stored separately)
-    localStorage.setItem(`${CONTENT_PREFIX}${chat.id}`, JSON.stringify(chat.messages))
-
-    // Notify listeners
-    window.dispatchEvent(new Event("chats_updated"))
+    localStorage.setItem(`${CONTENT_PREFIX}${id}`, JSON.stringify(messages))
 }
 
+/**
+ * Deletes a chat session and its associated messages.
+ * @param {string} id - The chat ID to delete
+ */
 export const deleteChat = (id: string) => {
     if (typeof window === "undefined") return
-
-    const history = getChatHistory().filter(c => c.id !== id)
+    const history = getChatHistory().filter(h => h.id !== id)
     localStorage.setItem(METADATA_KEY, JSON.stringify(history))
     localStorage.removeItem(`${CONTENT_PREFIX}${id}`)
-
-    window.dispatchEvent(new Event("chats_updated"))
 }
 
+/**
+ * Updates only the metadata (e.g., pinning, renaming) of a chat session.
+ * @param {string} id - The chat ID
+ * @param {Partial<ChatMetadata>} updates - The fields to update
+ */
 export const updateChatMetadata = (id: string, updates: Partial<ChatMetadata>) => {
     if (typeof window === "undefined") return
-
     const history = getChatHistory()
-    const index = history.findIndex(c => c.id === id)
-
+    const index = history.findIndex(h => h.id === id)
     if (index >= 0) {
-        history[index] = { ...history[index], ...updates }
+        history[index] = { ...history[index], ...updates, updatedAt: Date.now() }
         localStorage.setItem(METADATA_KEY, JSON.stringify(history))
-        window.dispatchEvent(new Event("chats_updated"))
     }
 }
 
+/**
+ * Generates a unique ID for a new chat session.
+ * @returns {string} A random 9-character alphanumeric ID
+ */
 export const generateId = () => Math.random().toString(36).substring(2, 11)

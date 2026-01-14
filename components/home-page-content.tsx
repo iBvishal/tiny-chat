@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Separator } from "@/components/ui/separator";
-import { ArrowUp, Loader2, Copy, Check, AlertCircle, RotateCw, Volume2, Download, Edit, MessageSquareDashed } from "lucide-react";
+import { ArrowUp, Loader2, Download, AlertCircle, MessageSquareDashed } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { streamGeminiResponse } from "@/lib/gemini";
@@ -10,24 +10,18 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { ModelSelector } from "@/components/model-selector";
 import { getChatHistory, getChatMessages, saveChat, generateId } from "@/lib/storage";
 import type { Message, ChatMetadata, ChatSession } from "@/lib/types";
+import { parseError } from "@/lib/error";
 import {
   MIN_ANIMATION_DURATION,
   MAX_TEXTAREA_HEIGHT,
-  USER_MESSAGE_PREVIEW_LIMIT,
-  TITLE_WORDS,
-  THINKING_WORDS,
-  TYPEWRITER_SPEED,
-  THINKING_ANIMATION_SPEED,
-  BLINK_INTERVAL,
   DEFAULT_MODEL
 } from "@/lib/constants";
 import { useSearchParams, useRouter } from "next/navigation";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { vscDarkPlus } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import { TypewriterTitle } from "@/components/typewriter/typewriter-title";
+import { AssistantMessage } from "@/components/chat/assistant-message";
+import { UserMessage } from "@/components/chat/user-message";
 
 export default function HomePageContent() {
   const router = useRouter();
@@ -161,7 +155,7 @@ export default function HomePageContent() {
           updatedAt: Date.now()
         };
 
-        saveChat(updatedSession);
+        saveChat(updatedSession.id, updatedSession.title, finalMessages);
         setSessionMetadata({ id: updatedSession.id, title: updatedSession.title, updatedAt: updatedSession.updatedAt });
 
         if (!chatId) {
@@ -169,24 +163,7 @@ export default function HomePageContent() {
         }
       }
     } catch (err: unknown) {
-      console.error("Failed to get response:", err);
-
-      // Parse and simplify error message
-      let errorMessage = "An error occurred. Please try again.";
-
-      if (err instanceof Error) {
-        if (err.message.includes("quota") || err.message.includes("429")) {
-          errorMessage = "API quota exceeded. Please check your billing or try again later.";
-        } else if (err.message.includes("API key")) {
-          errorMessage = "Invalid API key. Please check your configuration.";
-        } else if (err.message.includes("network") || err.message.includes("fetch")) {
-          errorMessage = "Network error. Please check your connection.";
-        } else {
-          errorMessage = "Request failed. Please try again.";
-        }
-      }
-
-      setError(errorMessage);
+      setError(parseError(err));
       // Remove the empty assistant placeholder on error
       setMessages((prev) => prev.filter(m => m.content !== ""));
     } finally {
@@ -346,62 +323,17 @@ export default function HomePageContent() {
                             }}
                           />
                         ) : (
-                          <div className="max-w-full text-sm break-words overflow-hidden text-foreground mr-12 pt-1">
-                            {msg.role === "assistant" && (
-                              <TypewriterThinking done={true} />
-                            )}
-                            <div className="prose prose-sm dark:prose-invert max-w-none overflow-x-hidden break-words">
-                              <ReactMarkdown
-                                remarkPlugins={[remarkGfm]}
-                                components={{
-                                  code({ inline, className, children, ...props }: {
-                                    inline?: boolean;
-                                    className?: string;
-                                    children?: React.ReactNode;
-                                  }) {
-                                    const match = /language-(\w+)/.exec(className || '');
-                                    return !inline && match ? (
-                                      <div className="relative group/code">
-                                        <div className="absolute right-3 top-3 opacity-0 group-hover/code:opacity-100 transition-opacity">
-                                          <CodeCopyButton text={String(children).replace(/\n$/, '')} />
-                                        </div>
-                                        <SyntaxHighlighter
-                                          {...props}
-                                          style={vscDarkPlus}
-                                          language={match[1]}
-                                          PreTag="div"
-                                          className="!my-0 !bg-transparent"
-                                        >
-                                          {String(children).replace(/\n$/, '')}
-                                        </SyntaxHighlighter>
-                                      </div>
-                                    ) : (
-                                      <code {...props} className={className}>
-                                        {children}
-                                      </code>
-                                    );
-                                  }
-                                }}
-                              >
-                                {msg.content}
-                              </ReactMarkdown>
-                            </div>
-
-                            {msg.content && !isLoading && (
-                              <ResponseActions
-                                content={msg.content}
-                                onListen={(text, speaking) => handleListen(text, speaking)}
-                                onRedo={handleRedo}
-                              />
-                            )}
-                          </div>
+                          <AssistantMessage
+                            content={msg.content}
+                            isLoading={isLoading && i === messages.length - 1}
+                            isLast={i === messages.length - 1}
+                            onListen={handleListen}
+                            onRedo={handleRedo}
+                          />
                         )}
                       </div>
                     );
                   })}
-                  {isLoading && messages[messages.length - 1]?.content === "" && (
-                    <TypewriterThinking />
-                  )}
                 </div>
               )}
             </div>
@@ -466,312 +398,5 @@ export default function HomePageContent() {
         </div >
       </div>
     </SidebarProvider>
-  );
-}
-
-function TypewriterTitle() {
-  const words = React.useMemo(() => TITLE_WORDS, []);
-  const [index, setIndex] = React.useState(() => Math.floor(Math.random() * words.length));
-  const [subIndex, setSubIndex] = React.useState(0);
-  const [reverse, setReverse] = React.useState(false);
-  const [blink, setBlink] = React.useState(true);
-
-  // typewriter effect
-  React.useEffect(() => {
-    if (subIndex === words[index].length + 1 && !reverse) {
-      const timeout = setTimeout(() => setReverse(true), TYPEWRITER_SPEED.PAUSE_AT_WORD); // wait at full word
-      return () => clearTimeout(timeout);
-    }
-
-    if (subIndex === 0 && reverse) {
-      setReverse(false);
-      setIndex((prev) => {
-        let next;
-        do {
-          next = Math.floor(Math.random() * words.length);
-        } while (next === prev && words.length > 1);
-        return next;
-      });
-      return;
-    }
-
-    const timeout = setTimeout(() => {
-      setSubIndex((prev) => prev + (reverse ? -1 : 1));
-    }, reverse ? TYPEWRITER_SPEED.REVERSE : TYPEWRITER_SPEED.FORWARD);
-
-    return () => clearTimeout(timeout);
-  }, [subIndex, index, reverse, words]);
-
-  // blinker
-  React.useEffect(() => {
-    const timeout2 = setTimeout(() => {
-      setBlink((prev) => !prev);
-    }, BLINK_INTERVAL.TITLE);
-    return () => clearTimeout(timeout2);
-  }, [blink]);
-
-  return (
-    <div className="flex flex-col items-center gap-4">
-      <div className="text-2xl md:text-4xl font-bold flex items-center">
-        <span className="bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
-          tiny-
-        </span>
-        <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-          {words[index].substring(0, subIndex)}
-        </span>
-        <span className={`${blink ? "opacity-100" : "opacity-0"} transition-opacity duration-100 inline-block w-1 h-10 md:h-12 bg-gradient-to-b from-purple-600 to-pink-600 align-middle mb-1 ml-0.5`} />
-      </div>
-    </div>
-  );
-}
-
-function ResponseActions({ content, onListen, onRedo }: { content: string, onListen: (text: string, speaking: boolean) => boolean, onRedo: () => void }) {
-  const [copied, setCopied] = React.useState(false);
-  const [speaking, setSpeaking] = React.useState(false);
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(content);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleToggleListen = () => {
-    const isNowSpeaking = onListen(content, speaking);
-    setSpeaking(isNowSpeaking);
-
-    // Reset speaking state when synthetic speech ends
-    if (isNowSpeaking) {
-      const checkSpeaking = setInterval(() => {
-        if (!window.speechSynthesis.speaking) {
-          setSpeaking(false);
-          clearInterval(checkSpeaking);
-        }
-      }, 500);
-    }
-  };
-
-  return (
-    <div className="flex items-center gap-1 mt-4 opacity-0 group-hover:opacity-100 transition-opacity">
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className={`h-7 w-7 rounded-lg transition-colors ${speaking ? "bg-muted text-foreground" : "text-muted-foreground/70 hover:text-foreground hover:bg-muted"}`}
-            onClick={handleToggleListen}
-          >
-            <Volume2 className={`h-3.5 w-3.5 ${speaking ? "animate-pulse" : ""}`} />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent side="bottom" className="text-[10px] px-2 py-1">{speaking ? "Stop" : "Listen"}</TooltipContent>
-      </Tooltip>
-
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 text-muted-foreground/70 hover:text-foreground hover:bg-muted rounded-lg"
-            onClick={handleCopy}
-          >
-            {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent side="bottom" className="text-[10px] px-2 py-1">{copied ? "Copied" : "Copy"}</TooltipContent>
-      </Tooltip>
-
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 text-muted-foreground/70 hover:text-foreground hover:bg-muted rounded-lg"
-            onClick={onRedo}
-          >
-            <RotateCw className="h-3.5 w-3.5" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent side="bottom" className="text-[10px] px-2 py-1">Redo</TooltipContent>
-      </Tooltip>
-    </div>
-  );
-}
-
-function CodeCopyButton({ text }: { text: string }) {
-  const [copied, setCopied] = React.useState(false);
-
-  const copy = () => {
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  return (
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={copy}
-      className="h-8 w-8 bg-background/10 hover:bg-background/20 backdrop-blur-sm text-white border-white/10 border"
-    >
-      {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-    </Button>
-  );
-}
-
-function TypewriterThinking({ done = false }: { done?: boolean }) {
-  const words = React.useMemo(() => THINKING_WORDS, []);
-  const [index, setIndex] = React.useState(() => Math.floor(Math.random() * words.length));
-  const [subIndex, setSubIndex] = React.useState(0);
-  const [reverse, setReverse] = React.useState(false);
-  const [blink, setBlink] = React.useState(true);
-
-  // typewriter effect
-  React.useEffect(() => {
-    if (done) return;
-
-    if (subIndex === words[index].length + 1 && !reverse) {
-      setTimeout(() => setReverse(true), THINKING_ANIMATION_SPEED.PAUSE_AT_WORD); // wait at full word
-      return;
-    }
-
-    if (subIndex === 0 && reverse) {
-      setReverse(false);
-      setIndex((prev) => {
-        let next;
-        do {
-          next = Math.floor(Math.random() * words.length);
-        } while (next === prev && words.length > 1);
-        return next;
-      });
-      return;
-    }
-
-    const timeout = setTimeout(() => {
-      setSubIndex((prev) => prev + (reverse ? -1 : 1));
-    }, reverse ? THINKING_ANIMATION_SPEED.REVERSE : THINKING_ANIMATION_SPEED.FORWARD);
-
-    return () => clearTimeout(timeout);
-  }, [subIndex, index, reverse, done, words]);
-
-  // blinker
-  React.useEffect(() => {
-    if (done) return;
-    const timeout2 = setTimeout(() => {
-      setBlink((prev) => !prev);
-    }, BLINK_INTERVAL.THINKING);
-    return () => clearTimeout(timeout2);
-  }, [blink, done]);
-
-  if (done) {
-    return (
-      <div className="flex items-center gap-0.5 mb-2 font-mono uppercase text-[10px] font-bold tracking-widest select-none text-muted-foreground/50">
-        <span>tiny-response</span>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex items-center gap-0.5 ml-2 mt-4 font-mono uppercase text-sm font-bold tracking-[0.1em] select-none text-foreground">
-      <span>tiny-</span>
-      <span>{words[index].substring(0, subIndex)}</span>
-      <span className={`${blink ? "opacity-100" : "opacity-0"} ml-1 transition-opacity duration-100 inline-block w-1.5 h-4 bg-foreground align-middle mb-0.5`} />
-    </div>
-  );
-}
-
-function UserMessage({ content, onEdit }: { content: string, onEdit: (text: string) => void }) {
-  const [isExpanded, setIsExpanded] = React.useState(false);
-  const [copied, setCopied] = React.useState(false);
-
-  const isLong = content.length > USER_MESSAGE_PREVIEW_LIMIT;
-  const displayContent = isLong && !isExpanded ? content.slice(0, USER_MESSAGE_PREVIEW_LIMIT) + "..." : content;
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(content);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  return (
-    <div className="relative group/user max-w-full">
-      {/* Action buttons - top left */}
-      <div className="absolute -left-16 top-0 flex items-center gap-1 opacity-0 group-hover/user:opacity-100 transition-opacity">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-muted-foreground/70 hover:text-foreground hover:bg-muted rounded-lg"
-              onClick={handleCopy}
-            >
-              {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" className="text-[10px] px-2 py-1">{copied ? "Copied" : "Copy"}</TooltipContent>
-        </Tooltip>
-
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-muted-foreground/70 hover:text-foreground hover:bg-muted rounded-lg"
-              onClick={() => onEdit(content)}
-            >
-              <Edit className="h-3.5 w-3.5" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" className="text-[10px] px-2 py-1">Edit</TooltipContent>
-        </Tooltip>
-      </div>
-
-      <div className="max-w-full text-sm break-words overflow-hidden text-foreground ml-12 pt-1">
-        <div className="prose prose-sm dark:prose-invert max-w-none overflow-x-hidden break-words">
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            components={{
-              code({ inline, className, children, ...props }: {
-                inline?: boolean;
-                className?: string;
-                children?: React.ReactNode;
-              }) {
-                const match = /language-(\w+)/.exec(className || '');
-                return !inline && match ? (
-                  <div className="relative group/code">
-                    <div className="absolute right-3 top-3 opacity-0 group-hover/code:opacity-100 transition-opacity">
-                      <CodeCopyButton text={String(children).replace(/\n$/, '')} />
-                    </div>
-                    <SyntaxHighlighter
-                      {...props}
-                      style={vscDarkPlus}
-                      language={match[1]}
-                      PreTag="div"
-                      className="!my-0 !bg-transparent"
-                    >
-                      {String(children).replace(/\n$/, '')}
-                    </SyntaxHighlighter>
-                  </div>
-                ) : (
-                  <code {...props} className={className}>
-                    {children}
-                  </code>
-                );
-              }
-            }}
-          >
-            {displayContent}
-          </ReactMarkdown>
-        </div>
-
-        {isLong && (
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="mt-1 text-xs text-muted-foreground hover:text-foreground underline"
-          >
-            {isExpanded ? "Show less" : "Show more"}
-          </button>
-        )}
-      </div>
-    </div>
   );
 }
