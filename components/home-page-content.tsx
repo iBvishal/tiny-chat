@@ -5,10 +5,22 @@ import { Separator } from "@/components/ui/separator";
 import { ArrowUp, Loader2, Copy, Check, AlertCircle, RotateCw, Volume2, Download, Edit, MessageSquareDashed } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { streamGeminiResponse, DEFAULT_MODEL } from "@/lib/gemini";
+import { streamGeminiResponse } from "@/lib/gemini";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ModelSelector } from "@/components/model-selector";
-import { getChatHistory, getChatMessages, saveChat, generateId, ChatSession, Message, ChatMetadata } from "@/lib/storage";
+import { getChatHistory, getChatMessages, saveChat, generateId } from "@/lib/storage";
+import type { Message, ChatMetadata, ChatSession } from "@/lib/types";
+import {
+  MIN_ANIMATION_DURATION,
+  MAX_TEXTAREA_HEIGHT,
+  USER_MESSAGE_PREVIEW_LIMIT,
+  TITLE_WORDS,
+  THINKING_WORDS,
+  TYPEWRITER_SPEED,
+  THINKING_ANIMATION_SPEED,
+  BLINK_INTERVAL,
+  DEFAULT_MODEL
+} from "@/lib/constants";
 import { useSearchParams, useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -105,7 +117,6 @@ export default function HomePageContent() {
 
     // Track when the animation started
     const animationStartTime = Date.now();
-    const MIN_ANIMATION_DURATION = 3000; // 3 seconds
 
     try {
       let fullResponse = "";
@@ -419,7 +430,7 @@ export default function HomePageContent() {
                     setInput(e.target.value);
                     // Auto-resize
                     e.target.style.height = "auto";
-                    e.target.style.height = `${Math.min(e.target.scrollHeight, 72)}px`; // 72px is roughly 3 lines (24px line-height)
+                    e.target.style.height = `${Math.min(e.target.scrollHeight, MAX_TEXTAREA_HEIGHT)}px`;
                   }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
@@ -431,7 +442,7 @@ export default function HomePageContent() {
                   disabled={isLoading}
                   rows={1}
                   className="flex-1 bg-transparent border-none focus:ring-0 text-sm py-1 outline-none disabled:opacity-50 resize-none max-h-[72px]"
-                  style={{ minHeight: "24px" }}
+                  style={{ minHeight: "24px", maxHeight: `${MAX_TEXTAREA_HEIGHT}px` }}
                 />
                 <div className="flex items-center gap-2 ml-2">
                   <Tooltip>
@@ -459,7 +470,7 @@ export default function HomePageContent() {
 }
 
 function TypewriterTitle() {
-  const words = React.useMemo(() => ["thinks", "dreams", "chat", "ideas", "musings", "thoughts"], []);
+  const words = React.useMemo(() => TITLE_WORDS, []);
   const [index, setIndex] = React.useState(() => Math.floor(Math.random() * words.length));
   const [subIndex, setSubIndex] = React.useState(0);
   const [reverse, setReverse] = React.useState(false);
@@ -468,7 +479,7 @@ function TypewriterTitle() {
   // typewriter effect
   React.useEffect(() => {
     if (subIndex === words[index].length + 1 && !reverse) {
-      const timeout = setTimeout(() => setReverse(true), 2000); // wait at full word
+      const timeout = setTimeout(() => setReverse(true), TYPEWRITER_SPEED.PAUSE_AT_WORD); // wait at full word
       return () => clearTimeout(timeout);
     }
 
@@ -486,7 +497,7 @@ function TypewriterTitle() {
 
     const timeout = setTimeout(() => {
       setSubIndex((prev) => prev + (reverse ? -1 : 1));
-    }, reverse ? 100 : 200);
+    }, reverse ? TYPEWRITER_SPEED.REVERSE : TYPEWRITER_SPEED.FORWARD);
 
     return () => clearTimeout(timeout);
   }, [subIndex, index, reverse, words]);
@@ -495,7 +506,7 @@ function TypewriterTitle() {
   React.useEffect(() => {
     const timeout2 = setTimeout(() => {
       setBlink((prev) => !prev);
-    }, 800);
+    }, BLINK_INTERVAL.TITLE);
     return () => clearTimeout(timeout2);
   }, [blink]);
 
@@ -608,7 +619,7 @@ function CodeCopyButton({ text }: { text: string }) {
 }
 
 function TypewriterThinking({ done = false }: { done?: boolean }) {
-  const words = React.useMemo(() => ["thinking...", "reasoning...", "processing...", "pondering...", "searching...", "analysing...", "responding..."], []);
+  const words = React.useMemo(() => THINKING_WORDS, []);
   const [index, setIndex] = React.useState(() => Math.floor(Math.random() * words.length));
   const [subIndex, setSubIndex] = React.useState(0);
   const [reverse, setReverse] = React.useState(false);
@@ -619,7 +630,7 @@ function TypewriterThinking({ done = false }: { done?: boolean }) {
     if (done) return;
 
     if (subIndex === words[index].length + 1 && !reverse) {
-      setTimeout(() => setReverse(true), 1500); // wait at full word
+      setTimeout(() => setReverse(true), THINKING_ANIMATION_SPEED.PAUSE_AT_WORD); // wait at full word
       return;
     }
 
@@ -637,7 +648,7 @@ function TypewriterThinking({ done = false }: { done?: boolean }) {
 
     const timeout = setTimeout(() => {
       setSubIndex((prev) => prev + (reverse ? -1 : 1));
-    }, reverse ? 40 : 80);
+    }, reverse ? THINKING_ANIMATION_SPEED.REVERSE : THINKING_ANIMATION_SPEED.FORWARD);
 
     return () => clearTimeout(timeout);
   }, [subIndex, index, reverse, done, words]);
@@ -647,7 +658,7 @@ function TypewriterThinking({ done = false }: { done?: boolean }) {
     if (done) return;
     const timeout2 = setTimeout(() => {
       setBlink((prev) => !prev);
-    }, 500);
+    }, BLINK_INTERVAL.THINKING);
     return () => clearTimeout(timeout2);
   }, [blink, done]);
 
@@ -672,9 +683,8 @@ function UserMessage({ content, onEdit }: { content: string, onEdit: (text: stri
   const [isExpanded, setIsExpanded] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
 
-  const CHAR_LIMIT = 200;
-  const isLong = content.length > CHAR_LIMIT;
-  const displayContent = isLong && !isExpanded ? content.slice(0, CHAR_LIMIT) + "..." : content;
+  const isLong = content.length > USER_MESSAGE_PREVIEW_LIMIT;
+  const displayContent = isLong && !isExpanded ? content.slice(0, USER_MESSAGE_PREVIEW_LIMIT) + "..." : content;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(content);

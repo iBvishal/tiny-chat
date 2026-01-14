@@ -1,22 +1,8 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import type { Message } from "@/lib/storage";
+import type { Message } from "@/lib/types";
+import { DEFAULT_MODEL, SYSTEM_PROMPT } from "./constants";
 
 const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-
-// Available models for chat
-export const AVAILABLE_MODELS = [
-    { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash", category: "Fast & Efficient" },
-    { id: "gemini-2.5-flash-lite", name: "Gemini 2.5 Flash Lite", category: "Ultra Fast" },
-    { id: "gemini-1.5-flash", name: "Gemini 1.5 Flash", category: "Balanced" },
-    { id: "gemini-1.5-pro", name: "Gemini 1.5 Pro", category: "Advanced" },
-] as const;
-
-export const DEFAULT_MODEL = "gemini-2.5-flash";
-
-const SYSTEM_PROMPT = `You are Tiny Chat, a minimal and helpful AI assistant. 
-Your responses should be concise, accurate, and formatted using clean Markdown. 
-If asked about your identity, you are Tiny Chat, built as a lightweight client-side application using the Gemini API.
-Always prefer brevity and clarity.`;
 
 if (!apiKey) {
     console.warn("Gemini API key is missing. Please set NEXT_PUBLIC_GEMINI_API_KEY in your .env.local file.");

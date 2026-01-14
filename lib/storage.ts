@@ -1,23 +1,11 @@
 "use client"
 
-export type Message = {
-    role: "user" | "assistant"
-    content: string
-}
+import type { Message, ChatMetadata, ChatSession } from "./types"
+import { STORAGE_KEYS } from "./constants"
 
-export type ChatMetadata = {
-    id: string
-    title: string
-    updatedAt: number
-    isPinned?: boolean
-}
+const METADATA_KEY = STORAGE_KEYS.METADATA
+const CONTENT_PREFIX = STORAGE_KEYS.CONTENT_PREFIX
 
-export type ChatSession = ChatMetadata & {
-    messages: Message[]
-}
-
-const METADATA_KEY = "tiny_chat_sessions"
-const CONTENT_PREFIX = "tiny_chat_content_"
 
 // Get just the lightweight list for the sidebar
 export const getChatHistory = (): ChatMetadata[] => {

@@ -36,7 +36,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { getChatHistory, deleteChat, ChatMetadata, updateChatMetadata, getChatMessages } from "@/lib/storage"
+import { getChatHistory, deleteChat, updateChatMetadata, getChatMessages } from "@/lib/storage"
+import type { ChatMetadata } from "@/lib/types"
 import Link from "next/link"
 import { useSearchParams, useRouter } from "next/navigation"
 

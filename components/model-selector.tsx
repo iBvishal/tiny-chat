@@ -1,6 +1,6 @@
 import * as React from "react"
 import { Check, ChevronDown } from "lucide-react"
-import { AVAILABLE_MODELS } from "@/lib/gemini"
+import { AVAILABLE_MODELS } from "@/lib/constants"
 import { Button } from "@/components/ui/button"
 import {
     DropdownMenu,
