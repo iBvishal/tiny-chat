@@ -23,8 +23,8 @@ import {
     SidebarMenuItem,
     SidebarGroup,
     SidebarGroupContent,
-
     SidebarTrigger,
+    useSidebar,
 } from "@/components/ui/sidebar"
 
 import {
@@ -53,6 +53,7 @@ function AppSidebarContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const currentChatId = searchParams.get("id")
+    const { setOpenMobile, isMobile } = useSidebar()
 
     const [isSearchOpen, setIsSearchOpen] = React.useState(false)
     const [searchQuery, setSearchQuery] = React.useState("")
@@ -172,7 +173,10 @@ function AppSidebarContent() {
                         <SidebarMenu>
                             <SidebarMenuItem>
                                 <SidebarActionButton
-                                    onClick={() => router.push("/")}
+                                    onClick={() => {
+                                        router.push("/")
+                                        if (isMobile) setOpenMobile(false)
+                                    }}
                                     icon={SquarePen}
                                     label="New chat"
                                     tooltip="New chat (Shift+Cmd+O)"
@@ -202,7 +206,13 @@ function AppSidebarContent() {
                                 </SidebarMenuItem>
                                 {chats.map((chat) => (
                                     <SidebarMenuItem key={chat.id} className="group/item">
-                                        <Link href={`/?id=${chat.id}`} className="relative block group/link">
+                                        <Link
+                                            href={`/?id=${chat.id}`}
+                                            className="relative block group/link"
+                                            onClick={() => {
+                                                if (isMobile) setOpenMobile(false)
+                                            }}
+                                        >
                                             {renamingId === chat.id ? (
                                                 <form
                                                     onSubmit={handleRenameSubmit}
@@ -347,6 +357,7 @@ function AppSidebarContent() {
                                 onClick={() => {
                                     router.push("/")
                                     setIsSearchOpen(false)
+                                    if (isMobile) setOpenMobile(false)
                                 }}
                             >
                                 <div className="h-8 w-8 rounded-full bg-muted group-hover:bg-background border flex items-center justify-center">
@@ -375,6 +386,7 @@ function AppSidebarContent() {
                                     onClick={() => {
                                         router.push(`/?id=${chat.id}`)
                                         setIsSearchOpen(false)
+                                        if (isMobile) setOpenMobile(false)
                                     }}
                                 >
                                     <div className="h-8 w-8 rounded-full bg-muted/50 group-hover:bg-background border flex items-center justify-center shrink-0">

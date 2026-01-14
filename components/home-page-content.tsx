@@ -17,7 +17,7 @@ import {
   DEFAULT_MODEL
 } from "@/lib/constants";
 import { useSearchParams, useRouter } from "next/navigation";
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { TypewriterTitle } from "@/components/typewriter/typewriter-title";
 import { AssistantMessage } from "@/components/chat/assistant-message";
@@ -237,7 +237,8 @@ export default function HomePageContent() {
           {/* Header */}
           <header className="relative flex h-14 shrink-0 items-center justify-between gap-2 border-b px-4">
             <div className="flex items-center gap-2 text-sm text-muted-foreground overflow-hidden">
-              <Separator orientation="vertical" className="h-4" />
+              <SidebarTrigger className="-ml-1" />
+              <Separator orientation="vertical" className="mr-2 h-4" />
               <span className="font-medium text-foreground truncate shrink-0">tiny-chat</span>
               {sessionMetadata && (
                 <>
