@@ -17,8 +17,6 @@ export const metadata: Metadata = {
   description: "A tiny chat application",
 };
 
-import { SidebarProvider } from "@/components/ui/sidebar"
-import { AppSidebar } from "@/components/app-sidebar"
 import { ThemeProvider } from "@/components/theme-provider"
 
 export default function RootLayout({
@@ -37,12 +35,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <SidebarProvider>
-            <AppSidebar />
-            <main className="flex-1 min-w-0">
-              {children}
-            </main>
-          </SidebarProvider>
+          {children}
         </ThemeProvider>
       </body>
     </html>
