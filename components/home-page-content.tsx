@@ -455,10 +455,56 @@ export default function HomePageContent() {
 }
 
 function TypewriterTitle() {
+  const words = ["thinks", "dreams", "chat", "ideas", "musings", "thoughts"];
+  const [index, setIndex] = React.useState(() => Math.floor(Math.random() * words.length));
+  const [subIndex, setSubIndex] = React.useState(0);
+  const [reverse, setReverse] = React.useState(false);
+  const [blink, setBlink] = React.useState(true);
+
+  // typewriter effect
+  React.useEffect(() => {
+    if (subIndex === words[index].length + 1 && !reverse) {
+      const timeout = setTimeout(() => setReverse(true), 2000); // wait at full word
+      return () => clearTimeout(timeout);
+    }
+
+    if (subIndex === 0 && reverse) {
+      setReverse(false);
+      setIndex((prev) => {
+        let next;
+        do {
+          next = Math.floor(Math.random() * words.length);
+        } while (next === prev && words.length > 1);
+        return next;
+      });
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      setSubIndex((prev) => prev + (reverse ? -1 : 1));
+    }, reverse ? 100 : 200);
+
+    return () => clearTimeout(timeout);
+  }, [subIndex, index, reverse]);
+
+  // blinker
+  React.useEffect(() => {
+    const timeout2 = setTimeout(() => {
+      setBlink((prev) => !prev);
+    }, 800);
+    return () => clearTimeout(timeout2);
+  }, [blink]);
+
   return (
     <div className="flex flex-col items-center gap-4">
-      <div className="text-4xl font-bold bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
-        tiny-chat
+      <div className="text-2xl md:text-4xl font-bold flex items-center">
+        <span className="bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
+          tiny-
+        </span>
+        <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+          {words[index].substring(0, subIndex)}
+        </span>
+        <span className={`${blink ? "opacity-100" : "opacity-0"} transition-opacity duration-100 inline-block w-1 h-10 md:h-12 bg-gradient-to-b from-purple-600 to-pink-600 align-middle mb-1 ml-0.5`} />
       </div>
     </div>
   );
