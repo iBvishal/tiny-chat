@@ -15,14 +15,13 @@ type MessageListProps = {
   isStreaming: boolean;
   onEdit: (id: string, text: string) => void;
   onRedo: (id: string) => void;
-  onListen: (text: string, speaking: boolean) => boolean;
 };
 
 /**
  * The branch on screen. Follows new text while you're at the bottom, and
  * leaves you where you are if you scroll up to read.
  */
-export function MessageList({ thread, isStreaming, onEdit, onRedo, onListen }: MessageListProps) {
+export function MessageList({ thread, isStreaming, onEdit, onRedo }: MessageListProps) {
   const { ref, isAtBottom, scrollToBottom, scrollProps } = useStickToBottom<HTMLDivElement>();
   const lastMessage = thread.at(-1);
   const lastUserMessageId = thread.findLast((message) => message.role === "user")?.id;
@@ -62,7 +61,6 @@ export function MessageList({ thread, isStreaming, onEdit, onRedo, onListen }: M
                         content={message.content}
                         isLoading={isLoading}
                         stopped={message.stopped}
-                        onListen={onListen}
                         onRedo={onRedo}
                       />
                     )}

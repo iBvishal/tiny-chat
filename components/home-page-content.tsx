@@ -17,20 +17,6 @@ import { MAX_TEXTAREA_HEIGHT, DEFAULT_MODEL } from "@/lib/constants";
 import { downloadChat } from "@/lib/download";
 import { SETTINGS_KEYS, useStoredString } from "@/lib/settings";
 
-function handleListen(text: string, isCurrentlySpeaking: boolean): boolean {
-  if (typeof window === "undefined" || !window.speechSynthesis) return false;
-
-  if (isCurrentlySpeaking) {
-    window.speechSynthesis.cancel();
-    return false;
-  }
-
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  window.speechSynthesis.speak(utterance);
-  return true;
-}
-
 export default function HomePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -157,7 +143,6 @@ export default function HomePageContent() {
             isStreaming={isStreaming}
             onEdit={handleEdit}
             onRedo={handleRedo}
-            onListen={handleListen}
           />
 
           {/* Input Area */}
