@@ -27,7 +27,7 @@ export const getGeminiResponse = async (prompt: string, history: Message[] = [],
         });
 
         const result = await chat.sendMessage(prompt);
-        const response = await result.response;
+        const response = result.response;
         return response.text();
     } catch (error) {
         console.error("Error calling Gemini API:", error);

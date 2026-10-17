@@ -193,7 +193,7 @@ export default function HomePageContent() {
     // We already have the user message in the state, just trigger Gemini for it
     // Explicitly set messages to remove the old response first
     setMessages(baseMessagesWithUser);
-    handleSubmit(undefined, prompt, historyBeforeUser, baseMessagesWithUser);
+    void handleSubmit(undefined, prompt, historyBeforeUser, baseMessagesWithUser);
   };
 
   const handleListen = (text: string, isCurrentlySpeaking: boolean): boolean => {
@@ -353,7 +353,7 @@ export default function HomePageContent() {
                 </div>
               )}
               <form
-                onSubmit={handleSubmit}
+                onSubmit={(e) => void handleSubmit(e)}
                 className="relative flex items-end bg-muted/30 rounded-2xl border px-4 py-3 transition-all focus-within:bg-muted/50"
               >
                 <textarea
@@ -368,7 +368,7 @@ export default function HomePageContent() {
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
-                      handleSubmit();
+                      void handleSubmit();
                     }
                   }}
                   placeholder="Ask tiny..."

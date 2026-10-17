@@ -26,7 +26,7 @@ export const UserMessage = React.memo(function UserMessage({
     const displayContent = isLong && !isExpanded ? content.slice(0, USER_MESSAGE_PREVIEW_LIMIT) + "..." : content;
 
     const handleCopy = () => {
-        navigator.clipboard.writeText(content);
+        void navigator.clipboard.writeText(content);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
     };

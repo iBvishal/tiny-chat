@@ -17,7 +17,7 @@ export const CodeCopyButton = React.memo(function CodeCopyButton({
     const [copied, setCopied] = React.useState(false);
 
     const handleCopy = () => {
-        navigator.clipboard.writeText(text);
+        void navigator.clipboard.writeText(text);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
     };

@@ -23,7 +23,7 @@ export const ResponseActions = React.memo(function ResponseActions({
     const [speaking, setSpeaking] = React.useState(false);
 
     const handleCopy = () => {
-        navigator.clipboard.writeText(content);
+        void navigator.clipboard.writeText(content);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
     };
