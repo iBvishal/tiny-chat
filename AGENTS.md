@@ -5,8 +5,9 @@ Guidance for coding agents working on tiny-chat.
 ## Commands
 
 - `npm ci`: install
-- `npm run dev`: dev server on http://localhost:3000. Needs `NEXT_PUBLIC_GEMINI_API_KEY` in `.env.local`.
+- `npm run dev`: dev server on http://localhost:3000. Needs `GEMINI_API_KEY` in `.env.local`.
 - `npm run check`: format check, lint and type check. Run it before every commit; CI runs the same.
+- `npm test`: unit tests (vitest) for `lib/`
 - `npm run format`: format everything with oxfmt
 - `npm run lint:fix`: apply oxlint's safe fixes
 - `npm run build`: production build
@@ -22,9 +23,10 @@ Guidance for coding agents working on tiny-chat.
 
 ## Ground rules
 
-- There is no backend. Chats live in `localStorage` through `lib/storage.ts`; temporary chats never touch storage.
-- All Gemini calls go through `lib/gemini.ts`. The model list and system prompt are in `lib/constants.ts`.
-- Anything named `NEXT_PUBLIC_*` ships to the browser. Never put a new secret there.
+- Chats live in the browser through `lib/storage.ts`; temporary chats never touch storage. The only server code is `app/api/chat/route.ts`.
+- `lib/gemini.ts` is the only code that talks to Gemini. It uses the REST API with `fetch` so it runs in the browser and on the server; do not add a Gemini SDK.
+- The site's key is `GEMINI_API_KEY` and stays on the server: `/api/chat` adds it and only allows models with `sharedKey: true`. The model list and system prompt are in `lib/constants.ts`.
+- Anything named `NEXT_PUBLIC_*` ships to the browser. Never put a secret there.
 - `components/ui/` holds shadcn/ui components. Add new ones with the shadcn CLI rather than by hand.
 - Stack: Next.js 16 App Router, React 19, Tailwind CSS 4, TypeScript strict.
 - The repository is public. Never commit `.env*` files or API keys.
@@ -37,6 +39,7 @@ Guidance for coding agents working on tiny-chat.
 | `components/app-sidebar.tsx`       | History, search (Cmd+K), new chat (Cmd+Shift+O), rename, pin, delete |
 | `components/chat/`                 | Message bubbles, Markdown rendering, response actions                |
 | `components/typewriter/`           | Title and "thinking" animations                                      |
+| `app/api/chat/route.ts`            | Streams Gemini replies with the site's shared key                    |
 | `lib/`                             | Gemini client, storage, constants, types, error messages             |
 
 <!-- BEGIN:nextjs-agent-rules -->

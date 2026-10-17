@@ -14,11 +14,16 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { MIN_ANIMATION_DURATION, MAX_TEXTAREA_HEIGHT, DEFAULT_MODEL } from "@/lib/constants";
+import { streamChat } from "@/lib/chat-client";
+import {
+  MIN_ANIMATION_DURATION,
+  MAX_TEXTAREA_HEIGHT,
+  DEFAULT_MODEL,
+  SYSTEM_PROMPT,
+} from "@/lib/constants";
 import { parseError } from "@/lib/error";
-import { streamGeminiResponse } from "@/lib/gemini";
 import { getChatHistory, getChatMessages, saveChat, generateId } from "@/lib/storage";
-import type { Message, ChatMetadata, ChatSession } from "@/lib/types";
+import type { Message, ChatMetadata, ChatRequest, ChatSession } from "@/lib/types";
 
 export default function HomePageContent() {
   const router = useRouter();
@@ -76,14 +81,6 @@ export default function HomePageContent() {
     const promptValue = overridePrompt || input;
     if (!promptValue.trim() || isLoading) return;
 
-    // Check for API key
-    if (!process.env.NEXT_PUBLIC_GEMINI_API_KEY) {
-      setError(
-        "Gemini API key is missing. Please add NEXT_PUBLIC_GEMINI_API_KEY to your .env.local file.",
-      );
-      return;
-    }
-
     const historyMessages = overrideHistory || messages;
     let baseMsgs: Message[];
 
@@ -121,26 +118,27 @@ export default function HomePageContent() {
 
     try {
       let fullResponse = "";
-      await streamGeminiResponse(
-        promptValue,
-        historyMessages,
-        (chunk) => {
-          fullResponse += chunk;
-          // Don't update messages during the minimum animation period
-          const elapsed = Date.now() - animationStartTime;
-          if (elapsed >= MIN_ANIMATION_DURATION) {
-            setMessages((prev) => {
-              const streamMessages = [...prev];
-              streamMessages[streamMessages.length - 1] = {
-                role: "assistant",
-                content: fullResponse,
-              };
-              return streamMessages;
-            });
-          }
-        },
-        selectedModel,
-      );
+      const request: ChatRequest = {
+        model: selectedModel,
+        system: SYSTEM_PROMPT,
+        messages: [...historyMessages, { role: "user", content: promptValue }],
+      };
+      for await (const event of streamChat(request, {})) {
+        if (event.type !== "text") continue;
+        fullResponse += event.text;
+        // Don't update messages during the minimum animation period
+        const elapsed = Date.now() - animationStartTime;
+        if (elapsed >= MIN_ANIMATION_DURATION) {
+          setMessages((prev) => {
+            const streamMessages = [...prev];
+            streamMessages[streamMessages.length - 1] = {
+              role: "assistant",
+              content: fullResponse,
+            };
+            return streamMessages;
+          });
+        }
+      }
 
       // Ensure minimum animation time has passed
       const elapsed = Date.now() - animationStartTime;
