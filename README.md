@@ -18,6 +18,7 @@ Tiny Chat is a lightweight, local-first artificial intelligence interface design
 - **Styling**: Tailwind CSS & Shadcn UI
 - **AI Integration**: Google Gemini SDK (@google/generative-ai)
 - **Storage**: Browser localStorage API
+- **Formatting and linting**: oxfmt and oxlint (type-aware)
 
 ## Getting Started
 
@@ -42,6 +43,10 @@ You will need a Gemini API key. You can obtain one from the [Google AI Studio](h
    ```
 5. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
+### Checks
+
+`npm run check` checks formatting, lints and type-checks the code. CI runs it, plus a production build, on every pull request. `npm run format` fixes formatting.
+
 ## Privacy and Storage
 
 Tiny Chat is built with a private-by-default philosophy. Since there is no backend database, your conversations never leave your device except to be processed by the Gemini API. You can clear all data at any time by clearing your browser's local storage for the site.
@@ -55,6 +60,6 @@ The following features and optimizations are planned for future releases:
 - **Enhanced Organization**: Support for categorizing conversations into folders and workspace-level tagging.
 - **Cloud Synchronization**: Optional encrypted sync using services like Supabase or Firebase for cross-device history.
 - **Full-Text Search**: Advanced indexing to allow searching through the entire contents of stored message histories.
-- **CI/CD and Quality Assurance**: Implementation of automated unit testing, linting, and GitHub Actions workflows for pull request verification.
+- **Automated Testing**: Unit tests, run in CI alongside the existing format, lint and type checks.
 - **Plug-and-Play Local Models**: Support for running open-source models directly in the browser using WebGPU or connecting to local providers like Ollama.
 - **Progressive Web App (PWA)**: Support for offline access and the ability to install Tiny Chat as a native-feeling application on desktop and mobile.
