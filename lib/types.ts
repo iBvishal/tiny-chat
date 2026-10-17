@@ -26,11 +26,17 @@ export type Source = {
 };
 
 /**
- * Represents a single message in a chat conversation
+ * A single message. Messages form a tree through `parentId`, so an edited
+ * message or a regenerated reply becomes a sibling instead of replacing the
+ * original.
  */
 export type Message = {
+  id: string;
+  parentId: string | null;
   role: Role;
   content: string;
+  createdAt: number;
+  model?: string;
 };
 
 /**
@@ -45,10 +51,17 @@ export type ChatMetadata = {
 };
 
 /**
- * Complete chat session including metadata and messages
+ * Every message of a chat, across all branches, plus the branch on screen
  */
-export type ChatSession = ChatMetadata & {
+export type ChatData = {
   messages: Message[];
+  /** Last message of the branch on screen */
+  leafId: string | null;
+};
+
+export type Chat = {
+  meta: ChatMetadata;
+  data: ChatData;
 };
 
 /**

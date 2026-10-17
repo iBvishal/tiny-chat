@@ -36,7 +36,9 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { getChatHistory, deleteChat, updateChatMetadata, getChatMessages } from "@/lib/storage";
+import { getThread } from "@/lib/chat-tree";
+import { downloadChat } from "@/lib/download";
+import { deleteChat, listChats, loadChat, onChatsChanged, updateChatMeta } from "@/lib/storage";
 import type { ChatMetadata } from "@/lib/types";
 
 export function AppSidebar() {
@@ -52,7 +54,6 @@ function AppSidebarContent() {
 
   const [isSearchOpen, setIsSearchOpen] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
-  const [filteredChats, setFilteredChats] = React.useState<ChatMetadata[]>([]);
 
   // Delete Confirmation State
   const [chatToDelete, setChatToDelete] = React.useState<ChatMetadata | null>(null);
@@ -64,18 +65,9 @@ function AppSidebarContent() {
   const [renamingId, setRenamingId] = React.useState<string | null>(null);
   const [renameName, setRenameName] = React.useState("");
 
-  const loadChats = React.useCallback(() => {
-    setChats(getChatHistory());
-  }, []);
-
-  React.useEffect(() => {
-    if (searchQuery.trim()) {
-      setFilteredChats(
-        chats.filter((c) => c.title.toLowerCase().includes(searchQuery.toLowerCase())),
-      );
-    } else {
-      setFilteredChats(chats);
-    }
+  const filteredChats = React.useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    return query ? chats.filter((c) => c.title.toLowerCase().includes(query)) : chats;
   }, [searchQuery, chats]);
 
   // Handle keyboard shortcuts
@@ -94,11 +86,12 @@ function AppSidebarContent() {
     return () => document.removeEventListener("keydown", down);
   }, [router]);
 
+  // Load the list, and reload it whenever a chat is saved, changed or deleted.
   React.useEffect(() => {
+    const loadChats = () => void listChats().then(setChats);
     loadChats();
-    window.addEventListener("chats_updated", loadChats);
-    return () => window.removeEventListener("chats_updated", loadChats);
-  }, [loadChats]);
+    return onChatsChanged(loadChats);
+  }, []);
 
   const handleDeleteClick = (chat: ChatMetadata) => {
     setChatToDelete(chat);
@@ -114,42 +107,27 @@ function AppSidebarContent() {
   const handleRenameSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (renamingId && renameName.trim()) {
-      updateChatMetadata(renamingId, { title: renameName.trim() });
+      void updateChatMeta(renamingId, { title: renameName.trim() });
       setRenamingId(null);
     }
   };
 
   const handlePinClick = (chat: ChatMetadata) => {
-    updateChatMetadata(chat.id, { isPinned: !chat.isPinned });
+    void updateChatMeta(chat.id, { isPinned: !chat.isPinned });
     setActiveMenuId(null);
   };
 
-  const handleDownloadClick = (chat: ChatMetadata) => {
-    const messages = getChatMessages(chat.id);
-    if (messages.length === 0) return;
-
-    const chatContent = messages
-      .map((msg) => `${msg.role.toUpperCase()}:\n${msg.content}\n\n---\n\n`)
-      .join("");
-
-    const blob = new Blob([chatContent], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
-    a.download = `tiny-chat-${chat.title}-${timestamp}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  const handleDownloadClick = async (chat: ChatMetadata) => {
     setActiveMenuId(null);
+    const loaded = await loadChat(chat.id);
+    if (loaded) {
+      downloadChat(loaded.meta.title, getThread(loaded.data.messages, loaded.data.leafId));
+    }
   };
-
-  // Close menu on click outside (handled by DropdownMenu now)
 
   const confirmDelete = () => {
     if (chatToDelete) {
-      deleteChat(chatToDelete.id);
+      void deleteChat(chatToDelete.id);
       if (currentChatId === chatToDelete.id) {
         router.push("/");
       }
@@ -283,7 +261,7 @@ function AppSidebarContent() {
                             <DropdownMenuItem
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleDownloadClick(chat);
+                                void handleDownloadClick(chat);
                               }}
                             >
                               <Download className="mr-2 h-4 w-4" />

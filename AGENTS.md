@@ -23,7 +23,8 @@ Guidance for coding agents working on tiny-chat.
 
 ## Ground rules
 
-- Chats live in the browser through `lib/storage.ts`; temporary chats never touch storage. The only server code is `app/api/chat/route.ts`.
+- Chats live in the browser's IndexedDB through `lib/storage.ts`; temporary chats never touch storage. The only server code is `app/api/chat/route.ts`.
+- Messages form a tree (`parentId`); a chat shows the branch ending at `leafId`. Edits and regenerated replies add siblings instead of replacing messages. Helpers are in `lib/chat-tree.ts`.
 - `lib/gemini.ts` is the only code that talks to Gemini. It uses the REST API with `fetch` so it runs in the browser and on the server; do not add a Gemini SDK.
 - The site's key is `GEMINI_API_KEY` and stays on the server: `/api/chat` adds it and only allows models with `sharedKey: true`. The model list and system prompt are in `lib/constants.ts`.
 - Anything named `NEXT_PUBLIC_*` ships to the browser. Never put a secret there.
@@ -35,7 +36,8 @@ Guidance for coding agents working on tiny-chat.
 
 | Path                               | What it is                                                           |
 | ---------------------------------- | -------------------------------------------------------------------- |
-| `components/home-page-content.tsx` | Chat screen: send, stream, edit, redo, listen, download              |
+| `components/home-page-content.tsx` | Chat screen layout, composer and message list                        |
+| `hooks/use-chat.ts`                | Chat state: load, send, stream, edit, regenerate, retry, save        |
 | `components/app-sidebar.tsx`       | History, search (Cmd+K), new chat (Cmd+Shift+O), rename, pin, delete |
 | `components/chat/`                 | Message bubbles, Markdown rendering, response actions                |
 | `components/typewriter/`           | Title and "thinking" animations                                      |

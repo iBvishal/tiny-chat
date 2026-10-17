@@ -9,15 +9,20 @@ import { USER_MESSAGE_PREVIEW_LIMIT } from "@/lib/constants";
 import { MarkdownContent } from "./markdown-content";
 
 type UserMessageProps = {
+  id: string;
   content: string;
-  onEdit: (text: string) => void;
+  onEdit: (id: string, text: string) => void;
 };
 
 /**
  * Component for displaying user messages in the chat
  * Handles markdown, code blocks, and expansion for long messages
  */
-export const UserMessage = React.memo(function UserMessage({ content, onEdit }: UserMessageProps) {
+export const UserMessage = React.memo(function UserMessage({
+  id,
+  content,
+  onEdit,
+}: UserMessageProps) {
   const [isExpanded, setIsExpanded] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
 
@@ -47,7 +52,7 @@ export const UserMessage = React.memo(function UserMessage({ content, onEdit }: 
             variant="ghost"
             size="icon"
             className="h-7 w-7 text-muted-foreground/70 hover:bg-muted hover:text-foreground"
-            onClick={() => onEdit(content)}
+            onClick={() => onEdit(id, content)}
           >
             <Edit className="h-3.5 w-3.5" />
           </Button>

@@ -10,12 +10,6 @@ import type { GeminiModel } from "./types";
 // ============================================================================
 
 /**
- * Minimum duration for typewriter animation effect
- * Ensures smooth visual feedback even with fast API responses
- */
-export const MIN_ANIMATION_DURATION = 3000; // 3 seconds
-
-/**
  * Typewriter effect speeds (in milliseconds)
  */
 export const TYPEWRITER_SPEED = {
@@ -66,9 +60,10 @@ export const TOOLTIP_DELAY = 200;
 // ============================================================================
 
 /**
- * LocalStorage key for chat metadata
+ * localStorage keys used before chats moved to IndexedDB
+ * Chats found under them are migrated once, then removed.
  */
-export const STORAGE_KEYS = {
+export const LEGACY_STORAGE_KEYS = {
   METADATA: "tiny_chat_sessions",
   CONTENT_PREFIX: "tiny_chat_content_",
 } as const;

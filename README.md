@@ -4,7 +4,7 @@ Tiny Chat is a lightweight, local-first artificial intelligence interface design
 
 ## Key Features
 
-- **Local Persistence**: All chat history is stored locally in your browser using localStorage. Metadata and message content are managed separately to ensure the interface remains fast even with many stored conversations.
+- **Local Persistence**: All chat history is stored locally in your browser using IndexedDB. Metadata and message content are managed separately to ensure the interface remains fast even with many stored conversations. Chats saved by older versions in localStorage move over automatically.
 - **Streaming Responses**: Real-time text generation with optimized animation orchestration to ensure a smooth reading experience.
 - **Mobile Optimization**: A fully responsive design including a slide-out sidebar for history management. On mobile devices, the sidebar automatically collapses upon selecting a conversation or starting a new one to prioritize the workspace.
 - **Message Management**: Support for pinning, renaming, deleting, and exporting conversations. Users can also edit previous messages to branch the conversation or re-generate assistant responses.
@@ -17,7 +17,7 @@ Tiny Chat is a lightweight, local-first artificial intelligence interface design
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS & Shadcn UI
 - **AI Integration**: Gemini REST API, called through a Next.js route so the API key stays on the server
-- **Storage**: Browser localStorage API
+- **Storage**: IndexedDB, through idb-keyval
 - **Formatting and linting**: oxfmt and oxlint (type-aware)
 
 ## Getting Started
