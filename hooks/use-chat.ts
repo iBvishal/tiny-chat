@@ -5,9 +5,9 @@ import * as React from "react";
 
 import { ChatError, streamChat } from "@/lib/chat-client";
 import { createMessage, getThread, newId } from "@/lib/chat-tree";
-import { SYSTEM_PROMPT } from "@/lib/constants";
+import { SYSTEM_PROMPT, getModel } from "@/lib/constants";
 import { isAbortError, parseError } from "@/lib/error";
-import { loadChat, loadChatMeta, onChatsChanged, saveChat } from "@/lib/storage";
+import { loadChat, loadChatMeta, onChatsChanged, saveChat, updateChatMeta } from "@/lib/storage";
 import type { Chat, ChatMetadata, ChatRequest, Message } from "@/lib/types";
 
 const TEMPORARY_ID = "temp";
@@ -20,8 +20,11 @@ export function titleFromPrompt(prompt: string): string {
   return line.length > 40 ? `${line.slice(0, 37)}...` : line || "New chat";
 }
 
-function emptyChat(id: string, title: string): Chat {
-  return { meta: { id, title, updatedAt: Date.now() }, data: { messages: [], leafId: null } };
+function emptyChat(id: string, title: string, model: string): Chat {
+  return {
+    meta: { id, title, updatedAt: Date.now(), model },
+    data: { messages: [], leafId: null },
+  };
 }
 
 function addMessage(chat: Chat, message: Message): Chat {
@@ -69,20 +72,23 @@ async function persist(
 type UseChatOptions = {
   chatId: string | null;
   isTemporary: boolean;
-  model: string;
+  /** Model for new chats and for chats saved before models were remembered */
+  defaultModel: string;
 };
 
 /**
  * State and actions for the chat on screen
  * Saves to IndexedDB as it goes, except for temporary chats.
  */
-export function useChat({ chatId, isTemporary, model }: UseChatOptions) {
+export function useChat({ chatId, isTemporary, defaultModel }: UseChatOptions) {
   const router = useRouter();
   const [chat, setChat] = React.useState<Chat | null>(null);
   const [isStreaming, setIsStreaming] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const activeIdRef = React.useRef<string | null>(null);
   const controllerRef = React.useRef<AbortController | null>(null);
+  // getModel falls back to the default for retired models.
+  const model = getModel(chat?.meta.model ?? defaultModel).id;
 
   // Declared before the loader below so it runs first after each render.
   React.useEffect(() => {
@@ -201,8 +207,8 @@ export function useChat({ chatId, isTemporary, model }: UseChatOptions) {
       let base =
         chat ??
         (isTemporary
-          ? emptyChat(TEMPORARY_ID, "Temporary chat")
-          : emptyChat(newId(), titleFromPrompt(text)));
+          ? emptyChat(TEMPORARY_ID, "Temporary chat", model)
+          : emptyChat(newId(), titleFromPrompt(text), model));
       const user = createMessage("user", text, base.data.leafId);
       base = addMessage(base, user);
       setChat(base);
@@ -213,7 +219,7 @@ export function useChat({ chatId, isTemporary, model }: UseChatOptions) {
       if (isNew && !isTemporary) window.history.pushState(null, "", `/?id=${base.meta.id}`);
       await generate(base, user);
     },
-    [chat, generate, isStreaming, isTemporary],
+    [chat, generate, isStreaming, isTemporary, model],
   );
 
   /**
@@ -252,6 +258,22 @@ export function useChat({ chatId, isTemporary, model }: UseChatOptions) {
    * Replies to the last message after a failed attempt
    */
   /**
+   * Switches the model for this chat's next replies
+   */
+  const setModel = React.useCallback(
+    (id: string) => {
+      if (!chat) return;
+      setChat((prev) => (prev ? { ...prev, meta: { ...prev.meta, model: id } } : prev));
+      if (chat.meta.id !== TEMPORARY_ID) {
+        void updateChatMeta(chat.meta.id, { model: id }).catch((err: unknown) =>
+          setError(parseError(err)),
+        );
+      }
+    },
+    [chat],
+  );
+
+  /**
    * Stops the reply in progress, keeping what has arrived so far
    */
   const stop = React.useCallback(() => controllerRef.current?.abort(), []);
@@ -265,5 +287,5 @@ export function useChat({ chatId, isTemporary, model }: UseChatOptions) {
   const data = chat?.data;
   const thread = React.useMemo(() => (data ? getThread(data.messages, data.leafId) : []), [data]);
 
-  return { chat, thread, isStreaming, error, send, edit, regenerate, retry, stop };
+  return { chat, thread, model, isStreaming, error, send, edit, regenerate, retry, stop, setModel };
 }

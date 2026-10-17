@@ -15,6 +15,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useChat } from "@/hooks/use-chat";
 import { MAX_TEXTAREA_HEIGHT, DEFAULT_MODEL } from "@/lib/constants";
 import { downloadChat } from "@/lib/download";
+import { SETTINGS_KEYS, useStoredString } from "@/lib/settings";
 
 function handleListen(text: string, isCurrentlySpeaking: boolean): boolean {
   if (typeof window === "undefined" || !window.speechSynthesis) return false;
@@ -38,14 +39,20 @@ export default function HomePageContent() {
 
   const [input, setInput] = React.useState("");
   const [editingMessageId, setEditingMessageId] = React.useState<string | null>(null);
-  const [selectedModel, setSelectedModel] = React.useState<string>(DEFAULT_MODEL);
+  const [defaultModel, setDefaultModel] = useStoredString(
+    SETTINGS_KEYS.DEFAULT_MODEL,
+    DEFAULT_MODEL,
+  );
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
-  const { chat, thread, isStreaming, error, send, edit, regenerate, retry, stop } = useChat({
-    chatId,
-    isTemporary,
-    model: selectedModel,
-  });
+  const { chat, thread, model, isStreaming, error, send, edit, regenerate, retry, stop, setModel } =
+    useChat({ chatId, isTemporary, defaultModel });
+
+  // The chat on screen keeps the model, and new chats start with the one used last.
+  const handleModelChange = (id: string) => {
+    setModel(id);
+    setDefaultModel(id);
+  };
   const lastMessage = thread.at(-1);
 
   const resetInput = () => {
@@ -98,7 +105,7 @@ export default function HomePageContent() {
             {/* Center - Model Selector */}
             <div className="absolute top-1/2 left-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-4 md:flex">
               <ThemeToggle />
-              <ModelSelector selectedModel={selectedModel} onModelChange={setSelectedModel} />
+              <ModelSelector selectedModel={model} onModelChange={handleModelChange} />
             </div>
 
             <div className="flex items-center gap-2">

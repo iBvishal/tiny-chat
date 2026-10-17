@@ -50,6 +50,8 @@ export type ChatMetadata = {
   title: string;
   updatedAt: number;
   isPinned?: boolean;
+  /** Model used for this chat's replies */
+  model?: string;
 };
 
 /**
