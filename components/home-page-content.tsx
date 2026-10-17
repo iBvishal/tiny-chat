@@ -15,7 +15,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useChat } from "@/hooks/use-chat";
 import { MAX_TEXTAREA_HEIGHT, DEFAULT_MODEL } from "@/lib/constants";
 import { downloadChat } from "@/lib/download";
-import { SETTINGS_KEYS, useStoredString } from "@/lib/settings";
+import { SETTINGS_KEYS, useApiKey, useStoredString } from "@/lib/settings";
 
 export default function HomePageContent() {
   const router = useRouter();
@@ -29,10 +29,11 @@ export default function HomePageContent() {
     SETTINGS_KEYS.DEFAULT_MODEL,
     DEFAULT_MODEL,
   );
+  const [apiKey, setApiKey] = useApiKey();
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
   const { chat, thread, model, isStreaming, error, send, edit, regenerate, retry, stop, setModel } =
-    useChat({ chatId, isTemporary, defaultModel });
+    useChat({ chatId, isTemporary, defaultModel, apiKey });
 
   // The chat on screen keeps the model, and new chats start with the one used last.
   const handleModelChange = (id: string) => {
@@ -40,6 +41,15 @@ export default function HomePageContent() {
     setDefaultModel(id);
   };
   const lastMessage = thread.at(-1);
+
+  const modelSelector = (
+    <ModelSelector
+      selectedModel={model}
+      onModelChange={handleModelChange}
+      apiKey={apiKey}
+      onApiKeyChange={setApiKey}
+    />
+  );
 
   const resetInput = () => {
     setInput("");
@@ -91,7 +101,7 @@ export default function HomePageContent() {
             {/* Center - Model Selector */}
             <div className="absolute top-1/2 left-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-4 md:flex">
               <ThemeToggle />
-              <ModelSelector selectedModel={model} onModelChange={handleModelChange} />
+              {modelSelector}
             </div>
 
             <div className="flex items-center gap-2">
@@ -132,7 +142,8 @@ export default function HomePageContent() {
                 <TooltipContent side="bottom">Temporary chat</TooltipContent>
               </Tooltip>
 
-              <div className="md:hidden">
+              <div className="flex items-center gap-1 md:hidden">
+                {modelSelector}
                 <ThemeToggle />
               </div>
             </div>

@@ -92,6 +92,13 @@ export const AVAILABLE_MODELS: readonly GeminiModel[] = [
     sharedKey: true,
     thinking: true,
   },
+  {
+    id: "gemini-4-argon",
+    name: "Gemini 4 Argon",
+    category: "Most capable",
+    sharedKey: false,
+    thinking: true,
+  },
 ];
 
 /**
@@ -113,6 +120,20 @@ export function getModel(id: string | null | undefined): GeminiModel {
     AVAILABLE_MODELS.find((model) => model.id === DEFAULT_MODEL)!
   );
 }
+
+/**
+ * Like getModel, but also falls back to the default for a model that needs
+ * the user's own key when there isn't one
+ */
+export function getUsableModel(id: string | null | undefined, hasOwnKey: boolean): GeminiModel {
+  const model = getModel(id);
+  return model.sharedKey || hasOwnKey ? model : getModel(DEFAULT_MODEL);
+}
+
+/**
+ * Where users create a Gemini API key
+ */
+export const API_KEY_URL = "https://aistudio.google.com/apikey";
 
 /**
  * Longest system prompt the server accepts

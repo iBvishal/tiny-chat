@@ -7,6 +7,8 @@ import * as React from "react";
  */
 export const SETTINGS_KEYS = {
   DEFAULT_MODEL: "tiny-chat:default-model",
+  /** The user's own Gemini API key. It never leaves the browser except to Google. */
+  API_KEY: "tiny-chat:gemini-api-key",
 } as const;
 
 const CHANGE_EVENT = "tiny-chat:settings-changed";
@@ -31,9 +33,12 @@ function subscribe(onChange: () => void) {
 
 /**
  * A string preference kept in localStorage, shared by every component and tab
- * that reads it. Renders `fallback` on the server.
+ * that reads it. Renders `fallback` on the server. Setting it to null removes it.
  */
-export function useStoredString(key: string, fallback: string): [string, (value: string) => void] {
+export function useStoredString(
+  key: string,
+  fallback: string,
+): [string, (value: string | null) => void] {
   const value = React.useSyncExternalStore(
     subscribe,
     () => read(key) ?? fallback,
@@ -41,9 +46,10 @@ export function useStoredString(key: string, fallback: string): [string, (value:
   );
 
   const setValue = React.useCallback(
-    (next: string) => {
+    (next: string | null) => {
       try {
-        localStorage.setItem(key, next);
+        if (next === null) localStorage.removeItem(key);
+        else localStorage.setItem(key, next);
       } catch {
         // Keep working for this page view even if it can't be saved.
       }
@@ -53,4 +59,12 @@ export function useStoredString(key: string, fallback: string): [string, (value:
   );
 
   return [value, setValue];
+}
+
+/**
+ * The user's own Gemini API key, or null when they haven't added one
+ */
+export function useApiKey(): [string | null, (value: string | null) => void] {
+  const [value, setValue] = useStoredString(SETTINGS_KEYS.API_KEY, "");
+  return [value || null, setValue];
 }
