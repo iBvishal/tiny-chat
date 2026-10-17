@@ -47,7 +47,6 @@
   --animate-gradient-x: gradient-x 3s ease infinite;
 
   @keyframes gradient-x {
-
     0%,
     100% {
       background-size: 200% 200%;
@@ -162,7 +161,7 @@
   .prose h2,
   .prose h3,
   .prose h4 {
-    @apply font-semibold tracking-tight mt-6 mb-3;
+    @apply mt-6 mb-3 font-semibold tracking-tight;
   }
 
   .prose h1 {
@@ -178,7 +177,7 @@
   }
 
   .prose p {
-    @apply leading-relaxed mb-4;
+    @apply mb-4 leading-relaxed;
   }
 
   .prose ul {
@@ -204,19 +203,19 @@
   }
 
   .prose pre {
-    @apply rounded-xl border bg-muted/30 my-6 p-0 overflow-hidden;
+    @apply my-6 overflow-hidden rounded-xl border bg-muted/30 p-0;
   }
 
   .prose table {
-    @apply w-full border-collapse my-6 text-sm;
+    @apply my-6 w-full border-collapse text-sm;
   }
 
   .prose th {
-    @apply text-left font-semibold py-3 px-4 border-b bg-muted/20;
+    @apply border-b bg-muted/20 px-4 py-3 text-left font-semibold;
   }
 
   .prose td {
-    @apply py-3 px-4 border-b;
+    @apply border-b px-4 py-3;
   }
 
   .prose tr:last-child td {

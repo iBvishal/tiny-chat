@@ -1,27 +1,24 @@
 "use client";
 
-import * as React from "react";
-import { Separator } from "@/components/ui/separator";
 import { ArrowUp, Loader2, Download, AlertCircle, MessageSquareDashed } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { streamGeminiResponse } from "@/lib/gemini";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { ModelSelector } from "@/components/model-selector";
-import { getChatHistory, getChatMessages, saveChat, generateId } from "@/lib/storage";
-import type { Message, ChatMetadata, ChatSession } from "@/lib/types";
-import { parseError } from "@/lib/error";
-import {
-  MIN_ANIMATION_DURATION,
-  MAX_TEXTAREA_HEIGHT,
-  DEFAULT_MODEL
-} from "@/lib/constants";
 import { useSearchParams, useRouter } from "next/navigation";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import * as React from "react";
+
 import { AppSidebar } from "@/components/app-sidebar";
-import { TypewriterTitle } from "@/components/typewriter/typewriter-title";
 import { AssistantMessage } from "@/components/chat/assistant-message";
 import { UserMessage } from "@/components/chat/user-message";
+import { ModelSelector } from "@/components/model-selector";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { TypewriterTitle } from "@/components/typewriter/typewriter-title";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { MIN_ANIMATION_DURATION, MAX_TEXTAREA_HEIGHT, DEFAULT_MODEL } from "@/lib/constants";
+import { parseError } from "@/lib/error";
+import { streamGeminiResponse } from "@/lib/gemini";
+import { getChatHistory, getChatMessages, saveChat, generateId } from "@/lib/storage";
+import type { Message, ChatMetadata, ChatSession } from "@/lib/types";
 
 export default function HomePageContent() {
   const router = useRouter();
@@ -48,7 +45,7 @@ export default function HomePageContent() {
       setSessionMetadata({ id: "temp", title: "Temporary Chat", updatedAt: Date.now() });
     } else if (chatId) {
       const history = getChatHistory();
-      const metadata = history.find(c => c.id === chatId);
+      const metadata = history.find((c) => c.id === chatId);
       if (metadata) {
         const fullMessages = getChatMessages(chatId);
         setMessages(fullMessages);
@@ -69,14 +66,21 @@ export default function HomePageContent() {
     }
   }, [messages]);
 
-  const handleSubmit = async (e?: React.FormEvent, overridePrompt?: string, overrideHistory?: Message[], overrideBaseMessages?: Message[]) => {
+  const handleSubmit = async (
+    e?: React.FormEvent,
+    overridePrompt?: string,
+    overrideHistory?: Message[],
+    overrideBaseMessages?: Message[],
+  ) => {
     e?.preventDefault();
     const promptValue = overridePrompt || input;
     if (!promptValue.trim() || isLoading) return;
 
     // Check for API key
     if (!process.env.NEXT_PUBLIC_GEMINI_API_KEY) {
-      setError("Gemini API key is missing. Please add NEXT_PUBLIC_GEMINI_API_KEY to your .env.local file.");
+      setError(
+        "Gemini API key is missing. Please add NEXT_PUBLIC_GEMINI_API_KEY to your .env.local file.",
+      );
       return;
     }
 
@@ -87,7 +91,10 @@ export default function HomePageContent() {
       baseMsgs = overrideBaseMessages;
     } else if (editingMessageIndex !== null) {
       // Editing mode: replace the message at editingMessageIndex and remove everything after
-      baseMsgs = [...messages.slice(0, editingMessageIndex), { role: "user", content: promptValue }];
+      baseMsgs = [
+        ...messages.slice(0, editingMessageIndex),
+        { role: "user", content: promptValue },
+      ];
       setEditingMessageIndex(null);
     } else {
       baseMsgs = [...messages, { role: "user", content: promptValue }];
@@ -102,8 +109,8 @@ export default function HomePageContent() {
     setIsLoading(true);
     setError(null);
 
-    const currentId = isTemporary ? "temp" : (chatId || generateId());
-    const firstPrompt = messages.length === 0 ? promptValue : (sessionMetadata?.title || "New Chat");
+    const currentId = isTemporary ? "temp" : chatId || generateId();
+    const firstPrompt = messages.length === 0 ? promptValue : sessionMetadata?.title || "New Chat";
 
     const assistantPlaceholder: Message = { role: "assistant", content: "" };
     const updatedMessages = [...baseMsgs, assistantPlaceholder];
@@ -114,26 +121,31 @@ export default function HomePageContent() {
 
     try {
       let fullResponse = "";
-      await streamGeminiResponse(promptValue, historyMessages, (chunk) => {
-        fullResponse += chunk;
-        // Don't update messages during the minimum animation period
-        const elapsed = Date.now() - animationStartTime;
-        if (elapsed >= MIN_ANIMATION_DURATION) {
-          setMessages((prev) => {
-            const streamMessages = [...prev];
-            streamMessages[streamMessages.length - 1] = {
-              role: "assistant",
-              content: fullResponse
-            };
-            return streamMessages;
-          });
-        }
-      }, selectedModel);
+      await streamGeminiResponse(
+        promptValue,
+        historyMessages,
+        (chunk) => {
+          fullResponse += chunk;
+          // Don't update messages during the minimum animation period
+          const elapsed = Date.now() - animationStartTime;
+          if (elapsed >= MIN_ANIMATION_DURATION) {
+            setMessages((prev) => {
+              const streamMessages = [...prev];
+              streamMessages[streamMessages.length - 1] = {
+                role: "assistant",
+                content: fullResponse,
+              };
+              return streamMessages;
+            });
+          }
+        },
+        selectedModel,
+      );
 
       // Ensure minimum animation time has passed
       const elapsed = Date.now() - animationStartTime;
       if (elapsed < MIN_ANIMATION_DURATION) {
-        await new Promise(resolve => setTimeout(resolve, MIN_ANIMATION_DURATION - elapsed));
+        await new Promise((resolve) => setTimeout(resolve, MIN_ANIMATION_DURATION - elapsed));
       }
 
       // Now show the full response
@@ -141,22 +153,29 @@ export default function HomePageContent() {
         const streamMessages = [...prev];
         streamMessages[streamMessages.length - 1] = {
           role: "assistant",
-          content: fullResponse
+          content: fullResponse,
         };
         return streamMessages;
       });
 
       if (!isTemporary) {
-        const finalMessages: Message[] = [...baseMsgs, { role: "assistant", content: fullResponse }];
+        const finalMessages: Message[] = [
+          ...baseMsgs,
+          { role: "assistant", content: fullResponse },
+        ];
         const updatedSession: ChatSession = {
           id: currentId,
           title: firstPrompt.length > 40 ? firstPrompt.substring(0, 37) + "..." : firstPrompt,
           messages: finalMessages,
-          updatedAt: Date.now()
+          updatedAt: Date.now(),
         };
 
         saveChat(updatedSession.id, updatedSession.title, finalMessages);
-        setSessionMetadata({ id: updatedSession.id, title: updatedSession.title, updatedAt: updatedSession.updatedAt });
+        setSessionMetadata({
+          id: updatedSession.id,
+          title: updatedSession.title,
+          updatedAt: updatedSession.updatedAt,
+        });
 
         if (!chatId) {
           window.history.pushState(null, "", `/?id=${currentId}`);
@@ -165,7 +184,7 @@ export default function HomePageContent() {
     } catch (err: unknown) {
       setError(parseError(err));
       // Remove the empty assistant placeholder on error
-      setMessages((prev) => prev.filter(m => m.content !== ""));
+      setMessages((prev) => prev.filter((m) => m.content !== ""));
     } finally {
       setIsLoading(false);
     }
@@ -214,7 +233,7 @@ export default function HomePageContent() {
     if (messages.length === 0) return;
 
     const chatContent = messages
-      .map(msg => `${msg.role.toUpperCase()}:\n${msg.content}\n\n---\n\n`)
+      .map((msg) => `${msg.role.toUpperCase()}:\n${msg.content}\n\n---\n\n`)
       .join("");
 
     const blob = new Blob([chatContent], { type: "text/plain" });
@@ -233,24 +252,25 @@ export default function HomePageContent() {
     <SidebarProvider>
       <div className="flex flex-1">
         <AppSidebar />
-        <div className="flex flex-col h-screen bg-background max-w-full overflow-x-hidden flex-1">
+        <div className="flex h-screen max-w-full flex-1 flex-col overflow-x-hidden bg-background">
           {/* Header */}
           <header className="relative flex h-14 shrink-0 items-center justify-between gap-2 border-b px-4">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground overflow-hidden">
+            <div className="flex items-center gap-2 overflow-hidden text-sm text-muted-foreground">
               <SidebarTrigger className="-ml-1 md:hidden" />
               <Separator orientation="vertical" className="mr-2 h-4 md:hidden" />
-              <span className="font-medium text-foreground truncate shrink-0">tiny-chat</span>
+              <span className="shrink-0 truncate font-medium text-foreground">tiny-chat</span>
               {sessionMetadata && (
                 <>
-                  <span className="text-muted-foreground/40 shrink-0">/</span>
-                  <span className="truncate text-xs text-muted-foreground font-normal">{sessionMetadata.title}</span>
-
+                  <span className="shrink-0 text-muted-foreground/40">/</span>
+                  <span className="truncate text-xs font-normal text-muted-foreground">
+                    {sessionMetadata.title}
+                  </span>
                 </>
               )}
             </div>
 
             {/* Center - Model Selector */}
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden md:flex items-center gap-4">
+            <div className="absolute top-1/2 left-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-4 md:flex">
               <ThemeToggle />
               <ModelSelector selectedModel={selectedModel} onModelChange={setSelectedModel} />
             </div>
@@ -277,7 +297,7 @@ export default function HomePageContent() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className={`h-8 w-8 transition-colors hover:bg-muted ${isTemporary ? "text-amber-600 dark:text-amber-400 bg-amber-400/10 hover:bg-amber-400/20" : ""}`}
+                    className={`h-8 w-8 transition-colors hover:bg-muted ${isTemporary ? "bg-amber-400/10 text-amber-600 hover:bg-amber-400/20 dark:text-amber-400" : ""}`}
                     onClick={() => {
                       if (isTemporary) {
                         router.push("/");
@@ -297,23 +317,26 @@ export default function HomePageContent() {
                 <ThemeToggle />
               </div>
             </div>
-          </header >
+          </header>
 
           {/* Content Area */}
-          < div className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-8 lg:p-12 scroll-smooth" ref={scrollRef} >
-            <div className="mx-auto max-w-3xl space-y-6 min-h-full flex flex-col">
+          <div
+            className="flex-1 overflow-x-hidden overflow-y-auto scroll-smooth p-4 md:p-8 lg:p-12"
+            ref={scrollRef}
+          >
+            <div className="mx-auto flex min-h-full max-w-3xl flex-col space-y-6">
               {messages.length === 0 ? (
-                <div className="flex-1 flex items-center justify-center">
+                <div className="flex flex-1 items-center justify-center">
                   <TypewriterTitle />
                 </div>
               ) : (
-                <div className="space-y-6 pb-4 flex-1">
+                <div className="flex-1 space-y-6 pb-4">
                   {messages.map((msg, i) => {
                     if (msg.role === "assistant" && !msg.content) return null;
                     return (
                       <div
                         key={i}
-                        className={`flex flex-col group ${msg.role === "user" ? "items-end" : "items-start"}`}
+                        className={`group flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}
                       >
                         {msg.role === "user" ? (
                           <UserMessage
@@ -338,23 +361,23 @@ export default function HomePageContent() {
                 </div>
               )}
             </div>
-          </div >
+          </div>
 
           {/* Input Area */}
-          < div className="p-4 md:p-8 shrink-0" >
+          <div className="shrink-0 p-4 md:p-8">
             <div className="mx-auto max-w-3xl">
               {error && (
-                <div className="mb-4 p-3 bg-destructive/10 border border-destructive/30 rounded-xl text-destructive text-xs flex items-start gap-3 animate-in fade-in slide-in-from-bottom-2">
-                  <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold mb-0.5 text-destructive/90">Error</p>
-                    <p className="opacity-80 leading-relaxed break-words">{error}</p>
+                <div className="mb-4 flex animate-in items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive fade-in slide-in-from-bottom-2">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="mb-0.5 font-semibold text-destructive/90">Error</p>
+                    <p className="leading-relaxed break-words opacity-80">{error}</p>
                   </div>
                 </div>
               )}
               <form
                 onSubmit={(e) => void handleSubmit(e)}
-                className="relative flex items-end bg-muted/30 rounded-2xl border px-4 py-3 transition-all focus-within:bg-muted/50"
+                className="relative flex items-end rounded-2xl border bg-muted/30 px-4 py-3 transition-all focus-within:bg-muted/50"
               >
                 <textarea
                   ref={textareaRef}
@@ -374,10 +397,10 @@ export default function HomePageContent() {
                   placeholder="Ask tiny..."
                   disabled={isLoading}
                   rows={1}
-                  className="flex-1 bg-transparent border-none focus:ring-0 text-sm py-1 outline-none disabled:opacity-50 resize-none max-h-[72px]"
+                  className="max-h-[72px] flex-1 resize-none border-none bg-transparent py-1 text-sm outline-none focus:ring-0 disabled:opacity-50"
                   style={{ minHeight: "24px", maxHeight: `${MAX_TEXTAREA_HEIGHT}px` }}
                 />
-                <div className="flex items-center gap-2 ml-2">
+                <div className="ml-2 flex items-center gap-2">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
@@ -386,7 +409,11 @@ export default function HomePageContent() {
                         size="icon"
                         className="h-9 w-9 rounded-full transition-all hover:scale-105 active:scale-95 disabled:grayscale"
                       >
-                        {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" />}
+                        {isLoading ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <ArrowUp className="h-4 w-4" />
+                        )}
                         <span className="sr-only">Send message</span>
                       </Button>
                     </TooltipTrigger>
@@ -395,8 +422,8 @@ export default function HomePageContent() {
                 </div>
               </form>
             </div>
-          </div >
-        </div >
+          </div>
+        </div>
       </div>
     </SidebarProvider>
   );

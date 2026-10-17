@@ -58,4 +58,3 @@ The following features and optimizations are planned for future releases:
 - **CI/CD and Quality Assurance**: Implementation of automated unit testing, linting, and GitHub Actions workflows for pull request verification.
 - **Plug-and-Play Local Models**: Support for running open-source models directly in the browser using WebGPU or connecting to local providers like Ollama.
 - **Progressive Web App (PWA)**: Support for offline access and the ability to install Tiny Chat as a native-feeling application on desktop and mobile.
-
