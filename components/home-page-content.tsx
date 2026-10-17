@@ -5,11 +5,9 @@ import { useSearchParams, useRouter } from "next/navigation";
 import * as React from "react";
 
 import { AppSidebar } from "@/components/app-sidebar";
-import { AssistantMessage } from "@/components/chat/assistant-message";
-import { UserMessage } from "@/components/chat/user-message";
+import { MessageList } from "@/components/chat/message-list";
 import { ModelSelector } from "@/components/model-selector";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { TypewriterTitle } from "@/components/typewriter/typewriter-title";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -41,7 +39,6 @@ export default function HomePageContent() {
   const [input, setInput] = React.useState("");
   const [editingMessageId, setEditingMessageId] = React.useState<string | null>(null);
   const [selectedModel, setSelectedModel] = React.useState<string>(DEFAULT_MODEL);
-  const scrollRef = React.useRef<HTMLDivElement>(null);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
   const { chat, thread, isStreaming, error, send, edit, regenerate, retry, stop } = useChat({
@@ -50,13 +47,6 @@ export default function HomePageContent() {
     model: selectedModel,
   });
   const lastMessage = thread.at(-1);
-
-  // Auto-scroll to bottom of chat
-  React.useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [thread]);
 
   const resetInput = () => {
     setInput("");
@@ -155,52 +145,13 @@ export default function HomePageContent() {
             </div>
           </header>
 
-          {/* Content Area */}
-          <div
-            className="flex-1 overflow-x-hidden overflow-y-auto scroll-smooth p-4 md:p-8 lg:p-12"
-            ref={scrollRef}
-          >
-            <div className="mx-auto flex min-h-full max-w-3xl flex-col space-y-6">
-              {thread.length === 0 ? (
-                <div className="flex flex-1 items-center justify-center">
-                  <TypewriterTitle />
-                </div>
-              ) : (
-                <div className="flex-1 space-y-6 pb-4">
-                  {thread.map((message) => {
-                    const isLast = message.id === lastMessage?.id;
-                    const isLoading = isStreaming && isLast;
-                    if (message.role === "assistant" && !message.content && !isLoading) {
-                      return null;
-                    }
-                    return (
-                      <div
-                        key={message.id}
-                        className={`group flex flex-col ${message.role === "user" ? "items-end" : "items-start"}`}
-                      >
-                        {message.role === "user" ? (
-                          <UserMessage
-                            id={message.id}
-                            content={message.content}
-                            onEdit={handleEdit}
-                          />
-                        ) : (
-                          <AssistantMessage
-                            id={message.id}
-                            content={message.content}
-                            isLoading={isLoading}
-                            stopped={message.stopped}
-                            onListen={handleListen}
-                            onRedo={handleRedo}
-                          />
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
+          <MessageList
+            thread={thread}
+            isStreaming={isStreaming}
+            onEdit={handleEdit}
+            onRedo={handleRedo}
+            onListen={handleListen}
+          />
 
           {/* Input Area */}
           <div className="shrink-0 p-4 md:p-8">

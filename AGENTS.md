@@ -39,7 +39,7 @@ Guidance for coding agents working on tiny-chat.
 | `components/home-page-content.tsx` | Chat screen layout, composer and message list                        |
 | `hooks/use-chat.ts`                | Chat state: load, send, stream, edit, regenerate, retry, save        |
 | `components/app-sidebar.tsx`       | History, search (Cmd+K), new chat (Cmd+Shift+O), rename, pin, delete |
-| `components/chat/`                 | Message bubbles, Markdown rendering, response actions                |
+| `components/chat/`                 | Message list, bubbles, Markdown rendering, response actions          |
 | `components/typewriter/`           | Title and "thinking" animations                                      |
 | `app/api/chat/route.ts`            | Streams Gemini replies with the site's shared key                    |
 | `lib/`                             | Gemini client, storage, constants, types, error messages             |
