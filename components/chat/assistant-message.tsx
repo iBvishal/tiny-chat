@@ -1,16 +1,18 @@
 "use client";
 
 import * as React from "react";
-import { MarkdownContent } from "./markdown-content";
-import { ResponseActions } from "./response-actions";
+
 import { TypewriterThinking } from "@/components/typewriter/typewriter-thinking";
 
+import { MarkdownContent } from "./markdown-content";
+import { ResponseActions } from "./response-actions";
+
 type AssistantMessageProps = {
-    content: string;
-    isLast: boolean;
-    isLoading: boolean;
-    onListen: (text: string, speaking: boolean) => boolean;
-    onRedo: () => void;
+  id: string;
+  content: string;
+  isLoading: boolean;
+  stopped?: boolean;
+  onRedo: (id: string) => void;
 };
 
 /**
@@ -18,28 +20,28 @@ type AssistantMessageProps = {
  * Includes thinking indicator, markdown content, and action buttons
  */
 export const AssistantMessage = React.memo(function AssistantMessage({
-    content,
-    isLoading,
-    onListen,
-    onRedo
+  id,
+  content,
+  isLoading,
+  stopped,
+  onRedo,
 }: AssistantMessageProps) {
-    if (!content && !isLoading) return null;
+  const handleRedo = React.useCallback(() => onRedo(id), [id, onRedo]);
 
-    return (
-        <div className="flex flex-col group items-start max-w-full">
-            {/* Show thinking indicator if it's the last message and still loading/no content */}
-            <TypewriterThinking done={!!content} />
+  if (!content && !isLoading) return null;
 
-            {content && (
-                <div className="max-w-full text-sm break-words overflow-hidden text-foreground pt-1">
-                    <MarkdownContent content={content} />
-                    <ResponseActions
-                        content={content}
-                        onListen={onListen}
-                        onRedo={onRedo}
-                    />
-                </div>
-            )}
+  return (
+    <div className="group flex max-w-full flex-col items-start">
+      {/* Show thinking indicator if it's the last message and still loading/no content */}
+      <TypewriterThinking done={!!content} />
+
+      {content && (
+        <div className="max-w-full overflow-hidden pt-1 text-sm break-words text-foreground">
+          <MarkdownContent content={content} />
+          {stopped && <p className="mt-2 text-xs text-muted-foreground italic">Stopped</p>}
+          {!isLoading && <ResponseActions content={content} onRedo={handleRedo} />}
         </div>
-    );
+      )}
+    </div>
+  );
 });

@@ -4,7 +4,7 @@ Tiny Chat is a lightweight, local-first artificial intelligence interface design
 
 ## Key Features
 
-- **Local Persistence**: All chat history is stored locally in your browser using localStorage. Metadata and message content are managed separately to ensure the interface remains fast even with many stored conversations.
+- **Local Persistence**: All chat history is stored locally in your browser using IndexedDB. Metadata and message content are managed separately to ensure the interface remains fast even with many stored conversations. Chats saved by older versions in localStorage move over automatically.
 - **Streaming Responses**: Real-time text generation with optimized animation orchestration to ensure a smooth reading experience.
 - **Mobile Optimization**: A fully responsive design including a slide-out sidebar for history management. On mobile devices, the sidebar automatically collapses upon selecting a conversation or starting a new one to prioritize the workspace.
 - **Message Management**: Support for pinning, renaming, deleting, and exporting conversations. Users can also edit previous messages to branch the conversation or re-generate assistant responses.
@@ -16,8 +16,9 @@ Tiny Chat is a lightweight, local-first artificial intelligence interface design
 - **Framework**: Next.js (App Router)
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS & Shadcn UI
-- **AI Integration**: Google Gemini SDK (@google/generative-ai)
-- **Storage**: Browser localStorage API
+- **AI Integration**: Gemini REST API, called through a Next.js route so the API key stays on the server
+- **Storage**: IndexedDB, through idb-keyval
+- **Formatting and linting**: oxfmt and oxlint (type-aware)
 
 ## Getting Started
 
@@ -32,9 +33,9 @@ You will need a Gemini API key. You can obtain one from the [Google AI Studio](h
    ```bash
    npm install
    ```
-3. Create a `.env.local` file in the root directory and add your API key:
+3. Create a `.env.local` file in the root directory and add your API key. It is only read on the server and never sent to the browser:
    ```env
-   NEXT_PUBLIC_GEMINI_API_KEY=your_api_key_here
+   GEMINI_API_KEY=your_api_key_here
    ```
 4. Start the development server:
    ```bash
@@ -42,9 +43,13 @@ You will need a Gemini API key. You can obtain one from the [Google AI Studio](h
    ```
 5. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
+### Checks
+
+`npm run check` checks formatting, lints and type-checks the code, and `npm test` runs the unit tests. CI runs both, plus a production build, on every pull request. `npm run format` fixes formatting.
+
 ## Privacy and Storage
 
-Tiny Chat is built with a private-by-default philosophy. Since there is no backend database, your conversations never leave your device except to be processed by the Gemini API. You can clear all data at any time by clearing your browser's local storage for the site.
+Tiny Chat is built with a private-by-default philosophy. There is no backend database: your conversations are stored only in your browser. Messages pass through the site's `/api/chat` route on their way to the Gemini API, which adds the API key; the route does not store or log them. You can clear all data at any time by clearing your browser's site data.
 
 ## Future Roadmap
 
@@ -55,7 +60,5 @@ The following features and optimizations are planned for future releases:
 - **Enhanced Organization**: Support for categorizing conversations into folders and workspace-level tagging.
 - **Cloud Synchronization**: Optional encrypted sync using services like Supabase or Firebase for cross-device history.
 - **Full-Text Search**: Advanced indexing to allow searching through the entire contents of stored message histories.
-- **CI/CD and Quality Assurance**: Implementation of automated unit testing, linting, and GitHub Actions workflows for pull request verification.
 - **Plug-and-Play Local Models**: Support for running open-source models directly in the browser using WebGPU or connecting to local providers like Ollama.
 - **Progressive Web App (PWA)**: Support for offline access and the ability to install Tiny Chat as a native-feeling application on desktop and mobile.
-
