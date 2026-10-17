@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUp, Loader2, Download, AlertCircle, MessageSquareDashed, X } from "lucide-react";
+import { ArrowUp, Download, AlertCircle, MessageSquareDashed, Square, X } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import * as React from "react";
 
@@ -44,7 +44,7 @@ export default function HomePageContent() {
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
-  const { chat, thread, isStreaming, error, send, edit, regenerate, retry } = useChat({
+  const { chat, thread, isStreaming, error, send, edit, regenerate, retry, stop } = useChat({
     chatId,
     isTemporary,
     model: selectedModel,
@@ -189,6 +189,7 @@ export default function HomePageContent() {
                             id={message.id}
                             content={message.content}
                             isLoading={isLoading}
+                            stopped={message.stopped}
                             onListen={handleListen}
                             onRedo={handleRedo}
                           />
@@ -256,33 +257,48 @@ export default function HomePageContent() {
                       e.preventDefault();
                       handleSubmit();
                     }
-                    if (e.key === "Escape" && editingMessageId) resetInput();
+                    if (e.key === "Escape") {
+                      if (isStreaming) stop();
+                      else if (editingMessageId) resetInput();
+                    }
                   }}
                   placeholder="Ask tiny..."
-                  disabled={isStreaming}
                   rows={1}
-                  className="max-h-[72px] flex-1 resize-none border-none bg-transparent py-1 text-sm outline-none focus:ring-0 disabled:opacity-50"
+                  className="max-h-[72px] flex-1 resize-none border-none bg-transparent py-1 text-sm outline-none focus:ring-0"
                   style={{ minHeight: "24px", maxHeight: `${MAX_TEXTAREA_HEIGHT}px` }}
                 />
                 <div className="ml-2 flex items-center gap-2">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="submit"
-                        disabled={!input.trim() || isStreaming}
-                        size="icon"
-                        className="h-9 w-9 rounded-full transition-all hover:scale-105 active:scale-95 disabled:grayscale"
-                      >
-                        {isStreaming ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
+                  {isStreaming ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          onClick={stop}
+                          size="icon"
+                          aria-label="Stop generating"
+                          className="h-9 w-9 rounded-full transition-all hover:scale-105 active:scale-95"
+                        >
+                          <Square className="h-3.5 w-3.5 fill-current" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">Stop (Esc)</TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="submit"
+                          disabled={!input.trim()}
+                          size="icon"
+                          aria-label="Send message"
+                          className="h-9 w-9 rounded-full transition-all hover:scale-105 active:scale-95 disabled:grayscale"
+                        >
                           <ArrowUp className="h-4 w-4" />
-                        )}
-                        <span className="sr-only">Send message</span>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top">Send message</TooltipContent>
-                  </Tooltip>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">Send message</TooltipContent>
+                    </Tooltip>
+                  )}
                 </div>
               </form>
             </div>

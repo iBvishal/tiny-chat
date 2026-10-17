@@ -11,6 +11,7 @@ type AssistantMessageProps = {
   id: string;
   content: string;
   isLoading: boolean;
+  stopped?: boolean;
   onListen: (text: string, speaking: boolean) => boolean;
   onRedo: (id: string) => void;
 };
@@ -23,6 +24,7 @@ export const AssistantMessage = React.memo(function AssistantMessage({
   id,
   content,
   isLoading,
+  stopped,
   onListen,
   onRedo,
 }: AssistantMessageProps) {
@@ -38,6 +40,7 @@ export const AssistantMessage = React.memo(function AssistantMessage({
       {content && (
         <div className="max-w-full overflow-hidden pt-1 text-sm break-words text-foreground">
           <MarkdownContent content={content} />
+          {stopped && <p className="mt-2 text-xs text-muted-foreground italic">Stopped</p>}
           {!isLoading && (
             <ResponseActions content={content} onListen={onListen} onRedo={handleRedo} />
           )}

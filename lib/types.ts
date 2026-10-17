@@ -37,6 +37,8 @@ export type Message = {
   content: string;
   createdAt: number;
   model?: string;
+  /** The user stopped the reply before it finished */
+  stopped?: boolean;
 };
 
 /**

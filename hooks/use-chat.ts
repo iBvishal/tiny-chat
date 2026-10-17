@@ -177,8 +177,10 @@ export function useChat({ chatId, isTemporary, model }: UseChatOptions) {
           );
         }
       } catch (err) {
-        if (!isAbortError(err)) setError(parseError(err));
+        const stopped = isAbortError(err);
+        if (!stopped) setError(parseError(err));
         if (!content) apply((draft) => removeMessage(draft, assistant));
+        else if (stopped) apply((draft) => patchMessage(draft, assistant.id, { stopped: true }));
       } finally {
         // Save before going idle, so a reload right after the reply can't lose it.
         await persist(current, { updatedAt: Date.now() }, setError);
@@ -249,6 +251,11 @@ export function useChat({ chatId, isTemporary, model }: UseChatOptions) {
   /**
    * Replies to the last message after a failed attempt
    */
+  /**
+   * Stops the reply in progress, keeping what has arrived so far
+   */
+  const stop = React.useCallback(() => controllerRef.current?.abort(), []);
+
   const retry = React.useCallback(async () => {
     const leaf = chat?.data.messages.find((message) => message.id === chat.data.leafId);
     if (!chat || !leaf || leaf.role !== "user" || isStreaming) return;
@@ -258,5 +265,5 @@ export function useChat({ chatId, isTemporary, model }: UseChatOptions) {
   const data = chat?.data;
   const thread = React.useMemo(() => (data ? getThread(data.messages, data.leafId) : []), [data]);
 
-  return { chat, thread, isStreaming, error, send, edit, regenerate, retry };
+  return { chat, thread, isStreaming, error, send, edit, regenerate, retry, stop };
 }
