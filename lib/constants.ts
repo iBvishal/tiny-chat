@@ -3,15 +3,11 @@
  * Centralized configuration values for easy maintenance
  */
 
+import type { GeminiModel } from "./types";
+
 // ============================================================================
 // Animation & Timing Constants
 // ============================================================================
-
-/**
- * Minimum duration for typewriter animation effect
- * Ensures smooth visual feedback even with fast API responses
- */
-export const MIN_ANIMATION_DURATION = 3000; // 3 seconds
 
 /**
  * Typewriter effect speeds (in milliseconds)
@@ -64,9 +60,10 @@ export const TOOLTIP_DELAY = 200;
 // ============================================================================
 
 /**
- * LocalStorage key for chat metadata
+ * localStorage keys used before chats moved to IndexedDB
+ * Chats found under them are migrated once, then removed.
  */
-export const STORAGE_KEYS = {
+export const LEGACY_STORAGE_KEYS = {
   METADATA: "tiny_chat_sessions",
   CONTENT_PREFIX: "tiny_chat_content_",
 } as const;
@@ -77,18 +74,63 @@ export const STORAGE_KEYS = {
 
 /**
  * Available models for chat
+ * Models without a free tier only work with the user's own API key, so the
+ * site's shared key never pays for them.
  */
-export const AVAILABLE_MODELS = [
-  { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash", category: "Fast & Efficient" },
-  { id: "gemini-2.5-flash-lite", name: "Gemini 2.5 Flash Lite", category: "Ultra Fast" },
-  { id: "gemini-1.5-flash", name: "Gemini 1.5 Flash", category: "Balanced" },
-  { id: "gemini-1.5-pro", name: "Gemini 1.5 Pro", category: "Advanced" },
-] as const;
+export const AVAILABLE_MODELS: readonly GeminiModel[] = [
+  {
+    id: "gemini-3.8-flash",
+    name: "Gemini 3.8 Flash",
+    category: "Fast & Capable",
+    sharedKey: true,
+    thinking: true,
+  },
+  {
+    id: "gemini-3.5-flash-lite",
+    name: "Gemini 3.5 Flash-Lite",
+    category: "Fastest",
+    sharedKey: true,
+    thinking: true,
+  },
+];
 
 /**
  * Default model used for new chats
  */
-export const DEFAULT_MODEL = "gemini-2.5-flash";
+export const DEFAULT_MODEL = "gemini-3.8-flash";
+
+/**
+ * Small, cheap model used to write chat titles
+ */
+export const TITLE_MODEL = "gemini-3.5-flash-lite";
+
+/**
+ * Looks up a model, falling back to the default for retired or unknown IDs
+ */
+export function getModel(id: string | null | undefined): GeminiModel {
+  return (
+    AVAILABLE_MODELS.find((model) => model.id === id) ??
+    AVAILABLE_MODELS.find((model) => model.id === DEFAULT_MODEL)!
+  );
+}
+
+/**
+ * Longest system prompt the server accepts
+ */
+export const MAX_SYSTEM_PROMPT_LENGTH = 8000;
+
+/**
+ * File types Gemini accepts inline. Text files of any kind are sent as text/plain.
+ */
+export const ATTACHMENT_MIME_TYPES: readonly string[] = [
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "image/heic",
+  "image/heif",
+  "application/pdf",
+  "text/plain",
+];
 
 /**
  * System prompt defining the AI assistant's personality and behavior

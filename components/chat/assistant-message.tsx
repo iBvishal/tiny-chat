@@ -8,11 +8,11 @@ import { MarkdownContent } from "./markdown-content";
 import { ResponseActions } from "./response-actions";
 
 type AssistantMessageProps = {
+  id: string;
   content: string;
-  isLast: boolean;
   isLoading: boolean;
-  onListen: (text: string, speaking: boolean) => boolean;
-  onRedo: () => void;
+  stopped?: boolean;
+  onRedo: (id: string) => void;
 };
 
 /**
@@ -20,11 +20,14 @@ type AssistantMessageProps = {
  * Includes thinking indicator, markdown content, and action buttons
  */
 export const AssistantMessage = React.memo(function AssistantMessage({
+  id,
   content,
   isLoading,
-  onListen,
+  stopped,
   onRedo,
 }: AssistantMessageProps) {
+  const handleRedo = React.useCallback(() => onRedo(id), [id, onRedo]);
+
   if (!content && !isLoading) return null;
 
   return (
@@ -35,7 +38,8 @@ export const AssistantMessage = React.memo(function AssistantMessage({
       {content && (
         <div className="max-w-full overflow-hidden pt-1 text-sm break-words text-foreground">
           <MarkdownContent content={content} />
-          <ResponseActions content={content} onListen={onListen} onRedo={onRedo} />
+          {stopped && <p className="mt-2 text-xs text-muted-foreground italic">Stopped</p>}
+          {!isLoading && <ResponseActions content={content} onRedo={handleRedo} />}
         </div>
       )}
     </div>

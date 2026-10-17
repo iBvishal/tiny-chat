@@ -5,10 +5,10 @@ import * as React from "react";
 
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { markdownToSpeech } from "@/lib/speech";
 
 type ResponseActionsProps = {
   content: string;
-  onListen: (text: string, speaking: boolean) => boolean;
   onRedo: () => void;
 };
 
@@ -17,11 +17,19 @@ type ResponseActionsProps = {
  */
 export const ResponseActions = React.memo(function ResponseActions({
   content,
-  onListen,
   onRedo,
 }: ResponseActionsProps) {
   const [copied, setCopied] = React.useState(false);
   const [speaking, setSpeaking] = React.useState(false);
+  const utteranceRef = React.useRef<SpeechSynthesisUtterance | null>(null);
+
+  // Stop reading if the message leaves the screen, for example on a chat switch.
+  React.useEffect(
+    () => () => {
+      if (utteranceRef.current) window.speechSynthesis.cancel();
+    },
+    [],
+  );
 
   const handleCopy = () => {
     void navigator.clipboard.writeText(content);
@@ -30,18 +38,22 @@ export const ResponseActions = React.memo(function ResponseActions({
   };
 
   const handleToggleListen = () => {
-    const isNowSpeaking = onListen(content, speaking);
-    setSpeaking(isNowSpeaking);
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
 
-    // Reset speaking state when synthetic speech ends
-    if (isNowSpeaking) {
-      const checkSpeaking = setInterval(() => {
-        if (typeof window !== "undefined" && !window.speechSynthesis.speaking) {
-          setSpeaking(false);
-          clearInterval(checkSpeaking);
-        }
-      }, 500);
-    }
+    // Cancelling also ends any other message being read, which resets its button.
+    window.speechSynthesis.cancel();
+    if (speaking) return;
+
+    const utterance = new SpeechSynthesisUtterance(markdownToSpeech(content));
+    const done = () => {
+      if (utteranceRef.current === utterance) utteranceRef.current = null;
+      setSpeaking(false);
+    };
+    utterance.addEventListener("end", done);
+    utterance.addEventListener("error", done);
+    utteranceRef.current = utterance;
+    window.speechSynthesis.speak(utterance);
+    setSpeaking(true);
   };
 
   return (
@@ -53,6 +65,7 @@ export const ResponseActions = React.memo(function ResponseActions({
             size="icon"
             className={`h-7 w-7 rounded-lg transition-colors ${speaking ? "bg-muted text-foreground" : "text-muted-foreground/70 hover:bg-muted hover:text-foreground"}`}
             onClick={handleToggleListen}
+            aria-label={speaking ? "Stop reading" : "Read aloud"}
           >
             <Volume2 className={`h-3.5 w-3.5 ${speaking ? "animate-pulse" : ""}`} />
           </Button>
@@ -69,6 +82,7 @@ export const ResponseActions = React.memo(function ResponseActions({
             size="icon"
             className="h-7 w-7 rounded-lg text-muted-foreground/70 hover:bg-muted hover:text-foreground"
             onClick={handleCopy}
+            aria-label="Copy response"
           >
             {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
           </Button>
