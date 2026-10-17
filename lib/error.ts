@@ -8,8 +8,13 @@ import { ChatError } from "./chat-client";
  * Standardized error messages for common API and network issues
  */
 export const ERROR_MESSAGES = {
-  QUOTA_EXCEEDED: "API quota exceeded. Please try again later.",
-  INVALID_API_KEY: "Invalid API key. Please check your configuration.",
+  QUOTA_EXCEEDED:
+    "The site's free Gemini quota is used up for now. Add your own API key from the model menu, or try again later.",
+  OWN_KEY_QUOTA_EXCEEDED:
+    "Your API key has hit its quota. Models without a free tier, like Gemini 4 Argon, need billing turned on for the key's Google Cloud project.",
+  INVALID_API_KEY:
+    "The site's Gemini API key isn't working right now. You can add your own key from the model menu.",
+  INVALID_OWN_API_KEY: "Google rejected your API key. Check or replace it from the model menu.",
   NETWORK_ERROR: "Network error. Please check your connection.",
   DEFAULT: "An error occurred. Please try again.",
   REQUEST_FAILED: "Request failed. Please try again.",
@@ -30,10 +35,10 @@ export function parseError(err: unknown): string {
 
   if (err instanceof ChatError) {
     if (err.status === 429 || err.message.toLowerCase().includes("quota")) {
-      return ERROR_MESSAGES.QUOTA_EXCEEDED;
+      return err.ownKey ? ERROR_MESSAGES.OWN_KEY_QUOTA_EXCEEDED : ERROR_MESSAGES.QUOTA_EXCEEDED;
     }
-    if (/api key not valid|api_key_invalid/i.test(err.message)) {
-      return ERROR_MESSAGES.INVALID_API_KEY;
+    if (/api key not valid|api_key_invalid|api key expired/i.test(err.message)) {
+      return err.ownKey ? ERROR_MESSAGES.INVALID_OWN_API_KEY : ERROR_MESSAGES.INVALID_API_KEY;
     }
     return err.message || ERROR_MESSAGES.REQUEST_FAILED;
   }

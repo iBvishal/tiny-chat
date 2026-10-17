@@ -4,7 +4,7 @@
  * through `/api/chat`, which adds the site's shared key on the server.
  */
 
-import { readError, readEvents, streamGemini } from "./gemini";
+import { GEMINI_API_URL, readError, readEvents, streamGemini } from "./gemini";
 import type { ChatRequest, StreamEvent } from "./types";
 
 /** Vercel rejects request bodies over 4.5 MB */
@@ -14,11 +14,14 @@ const OWN_KEY_LIMIT = 19_000_000;
 
 export class ChatError extends Error {
   readonly status?: number;
+  /** The request used the user's own key rather than the site's */
+  readonly ownKey: boolean;
 
-  constructor(message: string, status?: number) {
+  constructor(message: string, status?: number, ownKey = false) {
     super(message);
     this.name = "ChatError";
     this.status = status;
+    this.ownKey = ownKey;
   }
 }
 
@@ -69,7 +72,19 @@ export async function* streamChat(
       });
 
   if (!response.ok || !response.body) {
-    throw new ChatError(await readError(response), response.status);
+    throw new ChatError(await readError(response), response.status, Boolean(apiKey));
   }
   yield* readEvents(response.body);
+}
+
+/**
+ * Checks that Google accepts a key by listing one model, which costs no tokens
+ * Throws a ChatError when it doesn't.
+ */
+export async function checkApiKey(apiKey: string, signal?: AbortSignal): Promise<void> {
+  const response = await fetch(`${GEMINI_API_URL}/models?pageSize=1`, {
+    headers: { "x-goog-api-key": apiKey },
+    signal,
+  });
+  if (!response.ok) throw new ChatError(await readError(response), response.status, true);
 }

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { ChatError, fitRequest, streamChat } from "./chat-client";
+import { ChatError, checkApiKey, fitRequest, streamChat } from "./chat-client";
 import type { Attachment, ChatRequest, StreamEvent } from "./types";
 
 function attachment(name: string, size: number): Attachment {
@@ -85,6 +85,54 @@ describe("streamChat", () => {
       name: "ChatError",
       message: "Slow down",
       status: 429,
+      ownKey: false,
+    });
+  });
+
+  it("marks errors from the user's own key", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Response.json({ error: { message: "Quota" } }, { status: 429 })),
+    );
+
+    await expect(drain(streamChat(request(1), { apiKey: "user-key" }))).rejects.toMatchObject({
+      status: 429,
+      ownKey: true,
+    });
+  });
+});
+
+describe("checkApiKey", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("lists one model with the key, straight from Google", async () => {
+    const fetch = vi.fn<typeof globalThis.fetch>(async () => Response.json({ models: [] }));
+    vi.stubGlobal("fetch", fetch);
+
+    await expect(checkApiKey("user-key")).resolves.toBeUndefined();
+    const [url, init] = fetch.mock.calls[0];
+    expect(url).toBe("https://generativelanguage.googleapis.com/v1beta/models?pageSize=1");
+    expect(init?.headers).toMatchObject({ "x-goog-api-key": "user-key" });
+  });
+
+  it("throws Google's reason when the key is rejected", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        Response.json(
+          { error: { code: 400, message: "API key not valid. Please pass a valid API key." } },
+          { status: 400 },
+        ),
+      ),
+    );
+
+    await expect(checkApiKey("bad")).rejects.toMatchObject({
+      name: "ChatError",
+      message: "API key not valid. Please pass a valid API key.",
+      status: 400,
+      ownKey: true,
     });
   });
 });

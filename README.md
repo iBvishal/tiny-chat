@@ -9,6 +9,7 @@ Tiny Chat is a lightweight, local-first artificial intelligence interface design
 - **Mobile Optimization**: A fully responsive design including a slide-out sidebar for history management. On mobile devices, the sidebar automatically collapses upon selecting a conversation or starting a new one to prioritize the workspace.
 - **Message Management**: Support for pinning, renaming, deleting, and exporting conversations. Users can also edit previous messages to branch the conversation or re-generate assistant responses.
 - **Temporary Sessions**: An incognito-style mode where conversations are kept in memory and never written to local storage.
+- **Bring Your Own Key**: Add your own Gemini API key from the model menu to unlock Gemini 4 Argon and use your own quota. The key is stored only in your browser and sent straight to Google, never to the site's server.
 - **Rich Markdown Support**: Full rendering for GitHub Flavored Markdown, including tables, code blocks with syntax highlighting, and text-to-speech capabilities.
 
 ## Technical Stack

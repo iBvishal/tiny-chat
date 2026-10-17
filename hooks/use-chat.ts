@@ -5,7 +5,7 @@ import * as React from "react";
 
 import { ChatError, streamChat } from "@/lib/chat-client";
 import { createMessage, getThread, newId } from "@/lib/chat-tree";
-import { SYSTEM_PROMPT, getModel } from "@/lib/constants";
+import { SYSTEM_PROMPT, getUsableModel } from "@/lib/constants";
 import { isAbortError, parseError } from "@/lib/error";
 import { loadChat, loadChatMeta, onChatsChanged, saveChat, updateChatMeta } from "@/lib/storage";
 import type { Chat, ChatMetadata, ChatRequest, Message } from "@/lib/types";
@@ -74,21 +74,25 @@ type UseChatOptions = {
   isTemporary: boolean;
   /** Model for new chats and for chats saved before models were remembered */
   defaultModel: string;
+  /** The user's own Gemini key. Without one, requests use the site's key. */
+  apiKey: string | null;
 };
 
 /**
  * State and actions for the chat on screen
  * Saves to IndexedDB as it goes, except for temporary chats.
  */
-export function useChat({ chatId, isTemporary, defaultModel }: UseChatOptions) {
+export function useChat({ chatId, isTemporary, defaultModel, apiKey }: UseChatOptions) {
   const router = useRouter();
   const [chat, setChat] = React.useState<Chat | null>(null);
   const [isStreaming, setIsStreaming] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const activeIdRef = React.useRef<string | null>(null);
   const controllerRef = React.useRef<AbortController | null>(null);
-  // getModel falls back to the default for retired models.
-  const model = getModel(chat?.meta.model ?? defaultModel).id;
+  // Falls back to the default for retired models, and for models that need a
+  // key of your own when there isn't one. The chat keeps its saved choice, so
+  // adding the key again brings it back.
+  const model = getUsableModel(chat?.meta.model ?? defaultModel, apiKey !== null).id;
 
   // Declared before the loader below so it runs first after each render.
   React.useEffect(() => {
@@ -164,10 +168,11 @@ export function useChat({ chatId, isTemporary, defaultModel }: UseChatOptions) {
         })),
       };
 
+      const events = streamChat(request, { apiKey, signal: controller.signal });
       let content = "";
       let blockReason: string | null = null;
       try {
-        for await (const event of streamChat(request, { signal: controller.signal })) {
+        for await (const event of events) {
           if (event.type === "text") {
             content += event.text;
             apply((draft) => patchMessage(draft, assistant.id, { content }));
@@ -196,7 +201,7 @@ export function useChat({ chatId, isTemporary, defaultModel }: UseChatOptions) {
         }
       }
     },
-    [model],
+    [apiKey, model],
   );
 
   const send = React.useCallback(

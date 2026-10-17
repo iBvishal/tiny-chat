@@ -27,6 +27,7 @@ Guidance for coding agents working on tiny-chat.
 - Messages form a tree (`parentId`); a chat shows the branch ending at `leafId`. Edits and regenerated replies add siblings instead of replacing messages. Helpers are in `lib/chat-tree.ts`.
 - `lib/gemini.ts` is the only code that talks to Gemini. It uses the REST API with `fetch` so it runs in the browser and on the server; do not add a Gemini SDK.
 - The site's key is `GEMINI_API_KEY` and stays on the server: `/api/chat` adds it and only allows models with `sharedKey: true`. The model list and system prompt are in `lib/constants.ts`.
+- Users can add their own Gemini key from the model menu (`components/api-key-dialog.tsx`). It lives in `localStorage` and requests then go straight from the browser to Google, never through `/api/chat`. It unlocks models with `sharedKey: false`; `getUsableModel` falls back to the default when there's no key.
 - Anything named `NEXT_PUBLIC_*` ships to the browser. Never put a secret there.
 - `components/ui/` holds shadcn/ui components. Add new ones with the shadcn CLI rather than by hand.
 - Stack: Next.js 16 App Router, React 19, Tailwind CSS 4, TypeScript strict.
